@@ -1,11 +1,10 @@
 import { Editor, useEditorState } from '@tiptap/react';
 import { useEffect, useRef, useState } from 'react';
-import { RBtn, RGroup } from './Controls';
-import TablePopover from './TablePopover';
-import SplitButton from './SplitButton';
-import InsertTab from './InsertTab';
-import { CapturedFormat, captureFormat, useFormatPainter } from './formatPainter';
 import { useEditorStore } from '../../store';
+import { RBtn, RGroup } from './Controls';
+import InsertTab from './InsertTab';
+import SplitButton from './SplitButton';
+import { CapturedFormat, captureFormat, useFormatPainter } from './formatPainter';
 
 interface Props {
   editor: Editor | null;
@@ -14,6 +13,12 @@ interface Props {
 
 const SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
 const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'];
+const FIRST_LINE_INDENTS = [
+  { label: 'None', value: null },
+  { label: 'First line 1 char', value: '1em' },
+  { label: 'First line 2 chars', value: '2em' },
+  { label: 'First line 3 chars', value: '3em' }
+] as const;
 
 const FONT_FAMILIES: { label: string; value: string }[] = [
   { label: 'Aptos (Body)', value: 'Aptos, Calibri, Segoe UI, sans-serif' },
@@ -140,12 +145,13 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
         fontFamily: (e.getAttributes('textStyle').fontFamily as string) || '',
         fontSize: ((e.getAttributes('textStyle').fontSize as string) || '').replace('pt', ''),
         block: e.isActive('heading', { level: 1 }) ? 'h1'
-             : e.isActive('heading', { level: 2 }) ? 'h2'
-             : e.isActive('heading', { level: 3 }) ? 'h3'
-             : e.isActive('heading', { level: 4 }) ? 'h4'
-             : e.isActive('blockquote') ? 'blockquote'
-             : 'p',
+          : e.isActive('heading', { level: 2 }) ? 'h2'
+            : e.isActive('heading', { level: 3 }) ? 'h3'
+              : e.isActive('heading', { level: 4 }) ? 'h4'
+                : e.isActive('blockquote') ? 'blockquote'
+                  : 'p',
         lineHeight: (e.getAttributes('paragraph').lineHeight as string) || '1.15',
+        firstLineIndent: (e.getAttributes('paragraph').firstLineIndent as string) || '',
         color: (e.getAttributes('textStyle').color as string) || '#222222',
         highlight: (e.getAttributes('highlight').color as string) || '#ffff00',
         inTable: e.isActive('table'),
@@ -173,6 +179,10 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
   }, [state.inTable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const focus = () => editor.chain().focus();
+  const setFirstLineIndent = (value: string) =>
+    focus().updateAttributes('paragraph', { firstLineIndent: value }).run();
+  const unsetFirstLineIndent = () =>
+    focus().resetAttributes('paragraph', 'firstLineIndent').run();
 
   // ====== Delete current block ======
   // Removes whatever node the cursor is anchored in: if a table, deletes the
@@ -324,7 +334,14 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
   };
 
   // ====== Clear all formatting (marks + block resets) ======
-  const clearAll = () => focus().unsetAllMarks().setParagraph().setTextAlign('left').setLineHeight('1.15').run();
+  const clearAll = () =>
+    focus()
+      .unsetAllMarks()
+      .setParagraph()
+      .setTextAlign('left')
+      .setLineHeight('1.15')
+      .resetAttributes('paragraph', 'firstLineIndent')
+      .run();
 
   // ====== Show/hide formatting marks ======
   const { showFormattingMarks, toggleFormattingMarks } = useEditorStore();
@@ -334,9 +351,9 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     { id: 'insert', label: 'Insert' },
     ...(state.inTable
       ? ([
-          { id: 'tdesign', label: 'Table Design', contextual: true },
-          { id: 'tlayout', label: 'Table Layout', contextual: true }
-        ] as { id: TabId; label: string; contextual?: boolean }[])
+        { id: 'tdesign', label: 'Table Design', contextual: true },
+        { id: 'tlayout', label: 'Table Layout', contextual: true }
+      ] as { id: TabId; label: string; contextual?: boolean }[])
       : [])
   ];
 
@@ -609,6 +626,33 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
               </RBtn>
               <RBtn editor={editor} title="Decrease indent" onClick={() => focus().liftListItem('listItem').run()}>⇤</RBtn>
               <RBtn editor={editor} title="Increase indent" onClick={() => focus().sinkListItem('listItem').run()}>⇥</RBtn>
+              <SplitButton
+                main={<span aria-hidden>¶→</span>}
+                title="First line indent"
+                active={state.firstLineIndent === '2em'}
+                onClick={() => setFirstLineIndent('2em')}
+                popover={(close) => (
+                  <div className="popover-list">
+                    {FIRST_LINE_INDENTS.map((item) => (
+                      <button
+                        key={item.label}
+                        type="button"
+                        className={`pop-item ${state.firstLineIndent === (item.value ?? '') ? 'active' : ''}`}
+                        onClick={() => {
+                          if (item.value) {
+                            setFirstLineIndent(item.value);
+                          } else {
+                            unsetFirstLineIndent();
+                          }
+                          close();
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              />
               <RBtn editor={editor} title="Sort A→Z" onClick={sortParagraphs}>A<sub>Z</sub>↧</RBtn>
               <RBtn editor={editor} active={showFormattingMarks} title="Show/Hide formatting marks (Ctrl+*)" onClick={toggleFormattingMarks}>¶</RBtn>
             </div>

@@ -53,6 +53,7 @@ import { FontSize } from './extensions/FontSize';
 import { LineHeight } from './extensions/LineHeight';
 import { PageBreak } from './extensions/PageBreak';
 import { Pagination } from './extensions/Pagination';
+import { ParagraphIndent } from './extensions/ParagraphIndent';
 import { TableSelectAll } from './extensions/TableSelectAll';
 import { StyledTable, StyledTableCell, StyledTableHeader } from './extensions/TableStyled';
 
@@ -77,6 +78,7 @@ export function buildExtensions() {
     FontFamily.configure({ types: ['textStyle'] }),
     FontSize,
     LineHeight,
+    ParagraphIndent,
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right', 'justify'] }),
     Link.configure({
