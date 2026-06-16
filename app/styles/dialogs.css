@@ -1,0 +1,145 @@
+/* ============ Dialogs ============ */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 100;
+}
+.dialog {
+  position: fixed;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(440px, 92vw);
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  z-index: 101;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.dialog.wide { width: min(640px, 92vw); }
+.dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: linear-gradient(180deg, var(--bg-soft), var(--bg-elev));
+  border-bottom: 1px solid var(--border);
+}
+.dialog .x {
+  background: transparent;
+  border: 0;
+  font-size: 14px;
+  color: var(--fg-mute);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+.dialog .x:hover { background: var(--accent-soft); color: var(--fg); }
+.dialog .body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px 18px;
+}
+.dialog .body .row { gap: 8px; flex-wrap: wrap; }
+.dialog .body button {
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+}
+.dialog .body button:hover { background: var(--accent-soft); }
+.dialog .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--fg-mute);
+}
+.dialog .field input { font-size: 13px; color: var(--fg); }
+
+.kv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.kv-table th, .kv-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.kv-table th { color: var(--fg-mute); font-weight: 500; }
+.kv-table td { text-align: right; font-variant-numeric: tabular-nums; }
+
+.docs-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 50vh;
+  overflow: auto;
+}
+.docs-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.docs-list li:last-child { border-bottom: 0; }
+.docs-load {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  padding: 10px 8px;
+  text-align: left;
+}
+.docs-load:hover { background: var(--accent-soft); }
+.docs-name { font-weight: 600; }
+.docs-date { color: var(--fg-mute); font-size: 11px; }
+.docs-del {
+  border: 0;
+  background: transparent;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+}
+.docs-del:hover { background: rgba(197, 34, 31, 0.12); color: var(--danger); }
+
+/* ============ Context menu (Word-like right-click on tables) ============ */
+.ctx-menu {
+  position: fixed;
+  background: var(--bg-elev);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  min-width: 200px;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+.ctx-menu button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  padding: 6px 14px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.ctx-menu button:hover { background: var(--accent-soft); }
+.ctx-menu .ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+.ctx-menu .ctx-sub {
+  padding: 4px 14px 2px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-mute);
+}

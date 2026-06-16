@@ -1,0 +1,825 @@
+import { Editor, useEditorState } from '@tiptap/react';
+import { useEffect, useRef, useState } from 'react';
+import { RBtn, RGroup } from './Controls';
+import TablePopover from './TablePopover';
+import SplitButton from './SplitButton';
+import InsertTab from './InsertTab';
+import { CapturedFormat, captureFormat, useFormatPainter } from './formatPainter';
+import { useEditorStore } from '../../store';
+
+interface Props {
+  editor: Editor | null;
+  onAction: (action: string, payload?: unknown) => void;
+}
+
+const SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
+const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'];
+
+const FONT_FAMILIES: { label: string; value: string }[] = [
+  { label: 'Aptos (Body)', value: 'Aptos, Calibri, Segoe UI, sans-serif' },
+  { label: 'Calibri', value: 'Calibri, sans-serif' },
+  { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
+  { label: 'Cambria', value: 'Cambria, Georgia, serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", Times, serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  { label: 'Segoe UI', value: '"Segoe UI", Tahoma, sans-serif' },
+  { label: 'Consolas', value: 'Consolas, Menlo, monospace' },
+  { label: 'Courier New', value: '"Courier New", Courier, monospace' },
+  { label: 'Trebuchet MS', value: '"Trebuchet MS", sans-serif' },
+  { label: 'Garamond', value: 'Garamond, serif' },
+  { label: 'Comic Sans MS', value: '"Comic Sans MS", cursive' }
+];
+
+/** A compact Word-like theme palette. */
+const COLOR_THEME = [
+  '#000000', '#7F7F7F', '#A6A6A6', '#FFFFFF',
+  '#C00000', '#FF0000', '#FFC000', '#FFFF00',
+  '#92D050', '#00B050', '#00B0F0', '#0070C0',
+  '#002060', '#7030A0', '#2E74B5', '#548235'
+];
+
+const HIGHLIGHT_COLORS = [
+  '#FFFF00', '#00FF00', '#00FFFF', '#FF00FF',
+  '#0000FF', '#FF0000', '#000080', '#008080',
+  '#008000', '#800080', '#800000', '#808000',
+  '#808080', '#C0C0C0', 'transparent'
+];
+
+const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Editor) => void }[] = [
+  {
+    id: 'normal', label: 'Normal', preview: 'Normal',
+    apply: (e) => e.chain().focus().setParagraph().unsetAllMarks().run()
+  },
+  {
+    id: 'no-spacing', label: 'No Spacing', preview: 'No Spacing',
+    apply: (e) => e.chain().focus().setParagraph().setLineHeight('1').unsetAllMarks().run()
+  },
+  {
+    id: 'h1', label: 'Heading 1', preview: 'Heading 1',
+    apply: (e) => e.chain().focus().setHeading({ level: 1 }).run()
+  },
+  {
+    id: 'h2', label: 'Heading 2', preview: 'Heading 2',
+    apply: (e) => e.chain().focus().setHeading({ level: 2 }).run()
+  },
+  {
+    id: 'title', label: 'Title', preview: 'Title',
+    apply: (e) => e.chain().focus().setHeading({ level: 1 }).setMark('textStyle', { fontSize: '28pt' }).run()
+  },
+  {
+    id: 'subtitle', label: 'Subtitle', preview: 'Subtitle',
+    apply: (e) => e.chain().focus().setHeading({ level: 2 }).setMark('textStyle', { fontSize: '14pt', color: '#7f7f7f' }).run()
+  },
+  {
+    id: 'quote', label: 'Quote', preview: 'Quote',
+    apply: (e) => e.chain().focus().setBlockquote().run()
+  }
+];
+
+const CASE_ACTIONS: { id: string; label: string; transform: (s: string) => string }[] = [
+  { id: 'sentence', label: 'Sentence case', transform: (s) => s.replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase()).replace(/(\w)([A-Z])/g, (_, a, b) => a + b.toLowerCase()) },
+  { id: 'lower', label: 'lowercase', transform: (s) => s.toLowerCase() },
+  { id: 'upper', label: 'UPPERCASE', transform: (s) => s.toUpperCase() },
+  { id: 'capitalize', label: 'Capitalize Each Word', transform: (s) => s.replace(/\b\w/g, (m) => m.toUpperCase()) },
+  { id: 'toggle', label: 'tOGGLE cASE', transform: (s) => s.split('').map((c) => (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase())).join('') }
+];
+
+const QUICK_STYLES: { id: string; label: string }[] = [
+  { id: '', label: 'No style' },
+  { id: 'plain', label: 'Plain' },
+  { id: 'grid', label: 'Grid' },
+  { id: 'grid-accent1', label: 'Accent 1' },
+  { id: 'grid-accent2', label: 'Accent 2' },
+  { id: 'grid-accent3', label: 'Accent 3' },
+  { id: 'list-light', label: 'List Light' },
+  { id: 'banded-rows', label: 'Banded Rows' },
+  { id: 'banded-cols', label: 'Banded Cols' },
+  { id: 'banded-accent', label: 'Banded Accent' },
+  { id: 'total-row', label: 'Total Row' }
+];
+
+const CELL_ALIGNS: { id: string; label: string; v: 'top' | 'middle' | 'bottom'; h: 'left' | 'center' | 'right' }[] = [
+  { id: 'tl', label: 'Top Left', v: 'top', h: 'left' },
+  { id: 'tc', label: 'Top Center', v: 'top', h: 'center' },
+  { id: 'tr', label: 'Top Right', v: 'top', h: 'right' },
+  { id: 'ml', label: 'Middle Left', v: 'middle', h: 'left' },
+  { id: 'mc', label: 'Middle Center', v: 'middle', h: 'center' },
+  { id: 'mr', label: 'Middle Right', v: 'middle', h: 'right' },
+  { id: 'bl', label: 'Bottom Left', v: 'bottom', h: 'left' },
+  { id: 'bc', label: 'Bottom Center', v: 'bottom', h: 'center' },
+  { id: 'br', label: 'Bottom Right', v: 'bottom', h: 'right' }
+];
+
+type TabId = 'home' | 'insert' | 'tdesign' | 'tlayout';
+
+export default function Ribbon({ editor, onAction }: Props) {
+  if (!editor) return <nav className="ribbon" aria-label="Ribbon" />;
+  return <RibbonInner editor={editor} onAction={onAction} />;
+}
+
+function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }) {
+  const state = useEditorState({
+    editor,
+    selector: (ctx) => {
+      const e = ctx.editor;
+      return {
+        bold: e.isActive('bold'),
+        italic: e.isActive('italic'),
+        underline: e.isActive('underline'),
+        strike: e.isActive('strike'),
+        subscript: e.isActive('subscript'),
+        superscript: e.isActive('superscript'),
+        ul: e.isActive('bulletList'),
+        ol: e.isActive('orderedList'),
+        alignLeft: e.isActive({ textAlign: 'left' }),
+        alignCenter: e.isActive({ textAlign: 'center' }),
+        alignRight: e.isActive({ textAlign: 'right' }),
+        alignJustify: e.isActive({ textAlign: 'justify' }),
+        fontFamily: (e.getAttributes('textStyle').fontFamily as string) || '',
+        fontSize: ((e.getAttributes('textStyle').fontSize as string) || '').replace('pt', ''),
+        block: e.isActive('heading', { level: 1 }) ? 'h1'
+             : e.isActive('heading', { level: 2 }) ? 'h2'
+             : e.isActive('heading', { level: 3 }) ? 'h3'
+             : e.isActive('heading', { level: 4 }) ? 'h4'
+             : e.isActive('blockquote') ? 'blockquote'
+             : 'p',
+        lineHeight: (e.getAttributes('paragraph').lineHeight as string) || '1.15',
+        color: (e.getAttributes('textStyle').color as string) || '#222222',
+        highlight: (e.getAttributes('highlight').color as string) || '#ffff00',
+        inTable: e.isActive('table'),
+        tableStyle: (e.getAttributes('table').tableStyle as string) || ''
+      };
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const wasInTableRef = useRef(false);
+  const lastNonTableTabRef = useRef<TabId>('home');
+
+  // Word behaviour: jumping into a table auto-switches to "Table Design";
+  // leaving the table restores the previous (non-contextual) tab.
+  useEffect(() => {
+    if (state.inTable && !wasInTableRef.current) {
+      if (activeTab !== 'tdesign' && activeTab !== 'tlayout') {
+        lastNonTableTabRef.current = activeTab;
+      }
+      setActiveTab('tdesign');
+    } else if (!state.inTable && wasInTableRef.current) {
+      setActiveTab(lastNonTableTabRef.current);
+    }
+    wasInTableRef.current = state.inTable;
+  }, [state.inTable]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const focus = () => editor.chain().focus();
+
+  // ====== Delete current block ======
+  // Removes whatever node the cursor is anchored in: if a table, deletes the
+  // whole table; otherwise walks up the node depth and deletes the first
+  // non-paragraph block (covers cover-page wrappers, page-break HRs, text
+  // boxes, blockquotes, code blocks, images, etc.). If the cursor is in a
+  // plain paragraph, deletes that paragraph.
+  const deleteBlock = () => {
+    if (!editor) return;
+    if (editor.can().deleteTable()) {
+      editor.chain().focus().deleteTable().run();
+      return;
+    }
+    const { state } = editor;
+    const { $from, from, to } = state.selection;
+    // If a node-selection exists (e.g. clicked on an image), just delete it.
+    if (from !== to && (state.selection as { node?: unknown }).node) {
+      editor.chain().focus().deleteSelection().run();
+      return;
+    }
+    // Walk up looking for the nearest non-paragraph block.
+    for (let d = $from.depth; d >= 0; d--) {
+      const node = $from.node(d);
+      if (!node || node.type.name === 'doc') break;
+      if (node.type.name === 'paragraph' || node.type.name === 'text') continue;
+      const start = $from.before(d);
+      const end = $from.after(d);
+      editor
+        .chain()
+        .focus()
+        .command(({ tr, dispatch }) => {
+          if (dispatch) tr.delete(start, end);
+          return true;
+        })
+        .run();
+      return;
+    }
+    // Fallback: collapse current paragraph.
+    editor.chain().focus().selectParentNode().deleteSelection().run();
+  };
+
+  // Listen for the Ctrl+Shift+Delete shortcut from useShortcuts (App-level).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Delete') {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteBlock();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ====== Format painter ======
+  const captured = useRef<CapturedFormat | null>(null);
+  const [painterActive, setPainterActive] = useState(false);
+  const [painterSticky, setPainterSticky] = useState(false);
+  const deactivatePainter = () => {
+    setPainterActive(false);
+    setPainterSticky(false);
+    captured.current = null;
+  };
+  useFormatPainter({
+    editor,
+    active: painterActive,
+    sticky: painterSticky,
+    captured,
+    deactivate: deactivatePainter
+  });
+  const startPainter = (sticky: boolean) => {
+    captured.current = captureFormat(editor);
+    setPainterSticky(sticky);
+    setPainterActive(true);
+  };
+
+  // ====== Clipboard ======
+  const doCopy = async () => {
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const slice = editor.state.doc.slice(from, to);
+    const serialized = editor.view.serializeForClipboard(slice);
+    const html = serialized.dom.outerHTML || serialized.dom.innerHTML;
+    const text = serialized.text;
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/plain': new Blob([text], { type: 'text/plain' })
+        })
+      ]);
+    } catch {
+      try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+    }
+  };
+  const doCut = async () => {
+    await doCopy();
+    editor.chain().focus().deleteSelection().run();
+  };
+  const doPaste = async () => {
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (item.types.includes('text/html')) {
+          const blob = await item.getType('text/html');
+          const html = await blob.text();
+          editor.chain().focus().insertContent(html).run();
+          return;
+        }
+      }
+      const text = await navigator.clipboard.readText();
+      if (text) editor.chain().focus().insertContent(text).run();
+    } catch {
+      // Ignore - browser may block programmatic paste; user can use Ctrl+V.
+    }
+  };
+  const doPasteText = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) editor.chain().focus().insertContent(text).run();
+    } catch { /* ignore */ }
+  };
+
+  // ====== Font size grow / shrink ======
+  const adjustFontSize = (delta: number) => {
+    const cur = parseInt(state.fontSize || '11', 10) || 11;
+    const next = Math.max(6, Math.min(96, cur + delta));
+    focus().setFontSize(`${next}pt`).run();
+  };
+
+  // ====== Change case ======
+  const applyCase = (transform: (s: string) => string) => {
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const text = editor.state.doc.textBetween(from, to, '\n');
+    const out = transform(text);
+    editor.chain().focus().insertContentAt({ from, to }, out).setTextSelection({ from, to: from + out.length }).run();
+  };
+
+  // ====== Sort selected paragraphs alphabetically ======
+  const sortParagraphs = () => {
+    const { from, to } = editor.state.selection;
+    if (from === to) return;
+    const text = editor.state.doc.textBetween(from, to, '\n', '\n');
+    const lines = text.split('\n');
+    if (lines.length < 2) return;
+    const sorted = [...lines].sort((a, b) => a.localeCompare(b)).join('\n');
+    editor.chain().focus().insertContentAt({ from, to }, sorted).run();
+  };
+
+  // ====== Clear all formatting (marks + block resets) ======
+  const clearAll = () => focus().unsetAllMarks().setParagraph().setTextAlign('left').setLineHeight('1.15').run();
+
+  // ====== Show/hide formatting marks ======
+  const { showFormattingMarks, toggleFormattingMarks } = useEditorStore();
+
+  const tabs: { id: TabId; label: string; contextual?: boolean }[] = [
+    { id: 'home', label: 'Home' },
+    { id: 'insert', label: 'Insert' },
+    ...(state.inTable
+      ? ([
+          { id: 'tdesign', label: 'Table Design', contextual: true },
+          { id: 'tlayout', label: 'Table Layout', contextual: true }
+        ] as { id: TabId; label: string; contextual?: boolean }[])
+      : [])
+  ];
+
+  return (
+    <nav className="ribbon ribbon-tabbed" aria-label="Ribbon">
+      <div className="ribbon-tabs" role="tablist">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === t.id}
+            className={`ribbon-tab ${activeTab === t.id ? 'active' : ''} ${t.contextual ? 'contextual' : ''}`}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setActiveTab(t.id)}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'home' && (
+        <section className="ribbon-panel home-panel" role="tabpanel">
+          {/* === Clipboard === */}
+          <RGroup label="Clipboard">
+            <div className="clipboard-group">
+              <SplitButton
+                stacked
+                main={
+                  <span className="rb-big">
+                    <span className="ico ico-paste" aria-hidden>📋</span>
+                    <span className="rb-big-label">Paste</span>
+                  </span>
+                }
+                title="Paste (Ctrl+V)"
+                onClick={doPaste}
+                popover={(close) => (
+                  <div className="popover-list">
+                    <button type="button" className="pop-item" onClick={() => { doPaste(); close(); }}>
+                      <span className="ico" aria-hidden>📋</span>
+                      <span>Keep Source Formatting</span>
+                    </button>
+                    <button type="button" className="pop-item" onClick={() => { doPasteText(); close(); }}>
+                      <span className="ico" aria-hidden>🅣</span>
+                      <span>Keep Text Only</span>
+                    </button>
+                  </div>
+                )}
+              />
+              <div className="clip-stack">
+                <RBtn editor={editor} title="Cut (Ctrl+X)" onClick={doCut}>
+                  <span aria-hidden>✂</span> Cut
+                </RBtn>
+                <RBtn editor={editor} title="Copy (Ctrl+C)" onClick={doCopy}>
+                  <span aria-hidden>🗐</span> Copy
+                </RBtn>
+                <RBtn
+                  editor={editor}
+                  active={painterActive}
+                  title="Format Painter (double-click for sticky)"
+                  onClick={() => (painterActive ? deactivatePainter() : startPainter(false))}
+                >
+                  <span
+                    onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); startPainter(true); }}
+                    aria-hidden
+                  >🖌</span> Format
+                </RBtn>
+                <button
+                  type="button"
+                  className="rb-btn danger"
+                  title="Delete current block (Ctrl+Shift+Delete) — removes the table, page break, cover page, image, etc. that the cursor is in."
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={deleteBlock}
+                >
+                  <span aria-hidden>🗑</span> Delete block
+                </button>
+              </div>
+            </div>
+          </RGroup>
+
+          {/* === Font === */}
+          <RGroup label="Font">
+            <div className="row">
+              <select
+                className="rb-select font-family"
+                value={state.fontFamily || FONT_FAMILIES[0].value}
+                onChange={(e) => focus().setFontFamily(e.target.value).run()}
+                title="Font family"
+                style={{ fontFamily: state.fontFamily || undefined }}
+              >
+                {FONT_FAMILIES.map((f) => (
+                  <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>{f.label}</option>
+                ))}
+              </select>
+              <select
+                className="rb-select font-size"
+                value={state.fontSize || '11'}
+                onChange={(e) => focus().setFontSize(`${e.target.value}pt`).run()}
+                title="Font size"
+              >
+                {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <RBtn editor={editor} title="Grow font (Ctrl+Shift+>)" onClick={() => adjustFontSize(2)}>A<sup>↑</sup></RBtn>
+              <RBtn editor={editor} title="Shrink font (Ctrl+Shift+<)" onClick={() => adjustFontSize(-2)}>A<sup>↓</sup></RBtn>
+              <SplitButton
+                main={<span title="Change Case">Aa</span>}
+                title="Change Case"
+                onClick={() => applyCase(CASE_ACTIONS[0].transform)}
+                popover={(close) => (
+                  <div className="popover-list">
+                    {CASE_ACTIONS.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        className="pop-item"
+                        onClick={() => { applyCase(a.transform); close(); }}
+                      >{a.label}</button>
+                    ))}
+                  </div>
+                )}
+              />
+              <RBtn editor={editor} title="Clear all formatting" onClick={clearAll}>
+                <span aria-hidden>⌫A</span>
+              </RBtn>
+            </div>
+            <div className="row">
+              <RBtn editor={editor} active={state.bold} title="Bold (Ctrl+B)" onClick={() => focus().toggleBold().run()}><b>B</b></RBtn>
+              <RBtn editor={editor} active={state.italic} title="Italic (Ctrl+I)" onClick={() => focus().toggleItalic().run()}><i>I</i></RBtn>
+              <SplitButton
+                main={<u>U</u>}
+                title="Underline (Ctrl+U)"
+                active={state.underline}
+                onClick={() => focus().toggleUnderline().run()}
+                popover={(close) => (
+                  <div className="popover-list">
+                    <button type="button" className="pop-item" onClick={() => { focus().toggleUnderline().run(); close(); }}>
+                      <u>Underline</u>
+                    </button>
+                    <button type="button" className="pop-item" onClick={() => { focus().unsetUnderline?.().run(); close(); }}>
+                      No Underline
+                    </button>
+                  </div>
+                )}
+              />
+              <RBtn editor={editor} active={state.strike} title="Strikethrough" onClick={() => focus().toggleStrike().run()}><s>S</s></RBtn>
+              <RBtn editor={editor} active={state.subscript} title="Subscript (Ctrl+=)" onClick={() => focus().toggleSubscript().run()}>X<sub>2</sub></RBtn>
+              <RBtn editor={editor} active={state.superscript} title="Superscript (Ctrl+Shift+=)" onClick={() => focus().toggleSuperscript().run()}>X<sup>2</sup></RBtn>
+              <SplitButton
+                stacked
+                caretLabel={<span className="bar" style={{ background: state.highlight }} />}
+                main={<span className="hl-glyph" style={{ background: state.highlight }}>ab</span>}
+                title="Text Highlight Color"
+                onClick={() => focus().toggleHighlight({ color: state.highlight }).run()}
+                popover={(close) => (
+                  <div className="popover-palette">
+                    <div className="palette-title">Highlight</div>
+                    <div className="palette">
+                      {HIGHLIGHT_COLORS.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="sw"
+                          style={{ background: c === 'transparent' ? 'repeating-conic-gradient(#ddd 0% 25%, #fff 0% 50%) 50% / 8px 8px' : c }}
+                          title={c}
+                          onClick={() => {
+                            if (c === 'transparent') focus().unsetHighlight().run();
+                            else focus().toggleHighlight({ color: c }).run();
+                            close();
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <hr className="pop-sep" />
+                    <button type="button" className="pop-item" onClick={() => { focus().unsetHighlight().run(); close(); }}>No Color</button>
+                  </div>
+                )}
+              />
+              <SplitButton
+                stacked
+                caretLabel={<span className="bar" style={{ background: state.color }} />}
+                main={<span className="font-color-glyph" style={{ borderBottomColor: state.color }}>A</span>}
+                title="Font Color"
+                onClick={() => focus().setColor(state.color).run()}
+                popover={(close) => (
+                  <div className="popover-palette">
+                    <div className="palette-title">Theme Colors</div>
+                    <div className="palette">
+                      {COLOR_THEME.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="sw"
+                          style={{ background: c }}
+                          title={c}
+                          onClick={() => { focus().setColor(c).run(); close(); }}
+                        />
+                      ))}
+                    </div>
+                    <hr className="pop-sep" />
+                    <button type="button" className="pop-item" onClick={() => { focus().unsetColor().run(); close(); }}>Automatic</button>
+                    <label className="pop-item" style={{ cursor: 'pointer' }}>
+                      <span>More Colors…</span>
+                      <input
+                        type="color"
+                        style={{ marginLeft: 'auto' }}
+                        value={state.color}
+                        onChange={(e) => { focus().setColor(e.target.value).run(); close(); }}
+                      />
+                    </label>
+                  </div>
+                )}
+              />
+            </div>
+          </RGroup>
+
+          {/* === Paragraph === */}
+          <RGroup label="Paragraph">
+            <div className="row">
+              <SplitButton
+                main={<span aria-hidden>•≡</span>}
+                title="Bullets"
+                active={state.ul}
+                onClick={() => focus().toggleBulletList().run()}
+                popover={(close) => (
+                  <div className="popover-list">
+                    {[
+                      { sym: '•', label: 'Disc' },
+                      { sym: '◦', label: 'Circle' },
+                      { sym: '▪', label: 'Square' },
+                      { sym: '–', label: 'Dash' }
+                    ].map((b) => (
+                      <button
+                        key={b.sym}
+                        type="button"
+                        className="pop-item"
+                        onClick={() => { focus().toggleBulletList().run(); close(); }}
+                      >
+                        <span style={{ width: 18, textAlign: 'center' }}>{b.sym}</span>
+                        <span>{b.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              />
+              <SplitButton
+                main={<span aria-hidden>1.≡</span>}
+                title="Numbered List"
+                active={state.ol}
+                onClick={() => focus().toggleOrderedList().run()}
+                popover={(close) => (
+                  <div className="popover-list">
+                    {[
+                      { label: '1. 2. 3.' },
+                      { label: 'A. B. C.' },
+                      { label: 'a. b. c.' },
+                      { label: 'I. II. III.' }
+                    ].map((b) => (
+                      <button
+                        key={b.label}
+                        type="button"
+                        className="pop-item"
+                        onClick={() => { focus().toggleOrderedList().run(); close(); }}
+                      >{b.label}</button>
+                    ))}
+                  </div>
+                )}
+              />
+              <RBtn editor={editor} title="Multilevel List" onClick={() => focus().toggleBulletList().run()}>
+                <span aria-hidden>≣</span>
+              </RBtn>
+              <RBtn editor={editor} title="Decrease indent" onClick={() => focus().liftListItem('listItem').run()}>⇤</RBtn>
+              <RBtn editor={editor} title="Increase indent" onClick={() => focus().sinkListItem('listItem').run()}>⇥</RBtn>
+              <RBtn editor={editor} title="Sort A→Z" onClick={sortParagraphs}>A<sub>Z</sub>↧</RBtn>
+              <RBtn editor={editor} active={showFormattingMarks} title="Show/Hide formatting marks (Ctrl+*)" onClick={toggleFormattingMarks}>¶</RBtn>
+            </div>
+            <div className="row">
+              <RBtn editor={editor} active={state.alignLeft} title="Align Left (Ctrl+L)" onClick={() => focus().setTextAlign('left').run()}>≡⯇</RBtn>
+              <RBtn editor={editor} active={state.alignCenter} title="Center (Ctrl+E)" onClick={() => focus().setTextAlign('center').run()}>≡</RBtn>
+              <RBtn editor={editor} active={state.alignRight} title="Align Right (Ctrl+R)" onClick={() => focus().setTextAlign('right').run()}>⯈≡</RBtn>
+              <RBtn editor={editor} active={state.alignJustify} title="Justify (Ctrl+J)" onClick={() => focus().setTextAlign('justify').run()}>▤</RBtn>
+              <SplitButton
+                main={<span aria-hidden>↕</span>}
+                title="Line and Paragraph Spacing"
+                onClick={() => focus().setLineHeight('1.15').run()}
+                popover={(close) => (
+                  <div className="popover-list">
+                    {LINE_HEIGHTS.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        className={`pop-item ${state.lineHeight === v ? 'active' : ''}`}
+                        onClick={() => { focus().setLineHeight(v).run(); close(); }}
+                      >{v}</button>
+                    ))}
+                  </div>
+                )}
+              />
+              <SplitButton
+                main={<span className="hl-glyph" style={{ background: '#ffeaa7' }} aria-hidden>▣</span>}
+                title="Shading"
+                onClick={() => state.inTable && focus().setCellStyleProp('background-color', '#ffeaa7').run()}
+                disabled={!state.inTable}
+                popover={(close) => (
+                  <div className="popover-palette">
+                    <div className="palette-title">Cell Shading</div>
+                    <div className="palette">
+                      {COLOR_THEME.map((c) => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="sw"
+                          style={{ background: c }}
+                          title={c}
+                          onClick={() => { focus().setCellStyleProp('background-color', c).run(); close(); }}
+                        />
+                      ))}
+                    </div>
+                    <hr className="pop-sep" />
+                    <button type="button" className="pop-item" onClick={() => { focus().setCellStyleProp('background-color', null).run(); close(); }}>No Color</button>
+                  </div>
+                )}
+              />
+              <SplitButton
+                main={<span aria-hidden>▦</span>}
+                title="Borders"
+                onClick={() => focus().setTableBorderPreset('all').run()}
+                disabled={!state.inTable}
+                popover={(close) => (
+                  <div className="popover-list">
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('all').run(); close(); }}>All Borders</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('outer').run(); close(); }}>Outside Borders</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('inner').run(); close(); }}>Inside Borders</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('horizontal').run(); close(); }}>Horizontal Borders</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('none').run(); close(); }}>No Border</button>
+                  </div>
+                )}
+              />
+            </div>
+          </RGroup>
+
+          {/* === Styles gallery === */}
+          <RGroup label="Styles" className="styles-group">
+            <div className="styles-gallery">
+              {STYLE_GALLERY.map((s) => {
+                const active =
+                  (s.id === 'normal' && state.block === 'p') ||
+                  (s.id === 'h1' && state.block === 'h1') ||
+                  (s.id === 'h2' && state.block === 'h2');
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className={`style-card ${active ? 'active' : ''}`}
+                    title={s.label}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => s.apply(editor)}
+                  >
+                    <span className={`style-preview style-${s.id}`}>{s.preview}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </RGroup>
+        </section>
+      )}
+
+      {activeTab === 'insert' && (
+        <InsertTab editor={editor} inTable={state.inTable} />
+      )}
+
+      {activeTab === 'tdesign' && state.inTable && (
+        <section className="ribbon-panel" role="tabpanel">
+          <RGroup label="Table Styles" className="contextual">
+            <div className="row tdesign-styles">
+              {QUICK_STYLES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className={`td-style-chip ${state.tableStyle === s.id ? 'active' : ''}`}
+                  title={s.label}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => focus().setTableStyle(s.id || null).run()}
+                >
+                  <span className="tp-style-preview" data-table-style={s.id || 'plain'}>
+                    <span className="r r0"><span /><span /><span /></span>
+                    <span className="r r1"><span /><span /><span /></span>
+                    <span className="r r2"><span /><span /><span /></span>
+                    <span className="r r3"><span /><span /><span /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </RGroup>
+
+          <RGroup label="Shading" className="contextual">
+            <div className="row">
+              <label className="rb-color" title="Cell shading">
+                <span>▦</span>
+                <input
+                  type="color"
+                  onChange={(e) => focus().setCellStyleProp('background-color', e.target.value).run()}
+                />
+              </label>
+              <RBtn editor={editor} title="Clear shading" onClick={() => focus().setCellStyleProp('background-color', null).run()}>⌫▦</RBtn>
+            </div>
+          </RGroup>
+
+          <RGroup label="Borders" className="contextual">
+            <div className="row">
+              <RBtn editor={editor} title="All borders" onClick={() => focus().setTableBorderPreset('all').run()}>⊞</RBtn>
+              <RBtn editor={editor} title="Outer borders" onClick={() => focus().setTableBorderPreset('outer').run()}>▢</RBtn>
+              <RBtn editor={editor} title="Horizontal borders" onClick={() => focus().setTableBorderPreset('horizontal').run()}>≡</RBtn>
+              <RBtn editor={editor} title="Inner borders" onClick={() => focus().setTableBorderPreset('inner').run()}>┼</RBtn>
+              <RBtn editor={editor} title="No borders" onClick={() => focus().setTableBorderPreset('none').run()}>▭</RBtn>
+            </div>
+          </RGroup>
+
+          <RGroup label="Table" className="contextual">
+            <div className="row">
+              <button
+                type="button"
+                className="rb-btn danger"
+                title="Delete the entire table (Ctrl+Shift+Backspace)"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => focus().deleteTable().run()}
+              >
+                🗑 Delete Table
+              </button>
+            </div>
+          </RGroup>
+        </section>
+      )}
+
+      {activeTab === 'tlayout' && state.inTable && (
+        <section className="ribbon-panel" role="tabpanel">
+          <RGroup label="Rows & Columns" className="contextual">
+            <div className="row">
+              <RBtn editor={editor} title="Insert row above" onClick={() => focus().addRowBefore().run()}>+R↑</RBtn>
+              <RBtn editor={editor} title="Insert row below" onClick={() => focus().addRowAfter().run()}>+R↓</RBtn>
+              <RBtn editor={editor} title="Insert column left" onClick={() => focus().addColumnBefore().run()}>+C←</RBtn>
+              <RBtn editor={editor} title="Insert column right" onClick={() => focus().addColumnAfter().run()}>+C→</RBtn>
+            </div>
+            <div className="row">
+              <RBtn editor={editor} title="Delete row" onClick={() => focus().deleteRow().run()}>−R</RBtn>
+              <RBtn editor={editor} title="Delete column" onClick={() => focus().deleteColumn().run()}>−C</RBtn>
+              <RBtn editor={editor} title="Delete table" onClick={() => focus().deleteTable().run()}>🗑</RBtn>
+            </div>
+          </RGroup>
+
+          <RGroup label="Merge" className="contextual">
+            <div className="row">
+              <RBtn editor={editor} title="Merge cells" onClick={() => focus().mergeCells().run()}>⊞→⬚</RBtn>
+              <RBtn editor={editor} title="Split cell" onClick={() => focus().splitCell().run()}>⬚→⊞</RBtn>
+              <RBtn editor={editor} title="Toggle header row" onClick={() => focus().toggleHeaderRow().run()}>H↑</RBtn>
+              <RBtn editor={editor} title="Toggle header column" onClick={() => focus().toggleHeaderColumn().run()}>H←</RBtn>
+            </div>
+          </RGroup>
+
+          <RGroup label="Alignment" className="contextual">
+            <div className="row">
+              <div className="cell-align" title="Cell alignment">
+                {CELL_ALIGNS.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className="ca-cell"
+                    title={a.label}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      focus()
+                        .setCellStyleProp('vertical-align', a.v)
+                        .setTextAlign(a.h)
+                        .run();
+                    }}
+                  >
+                    <span className={`ca-dot v-${a.v} h-${a.h}`} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </RGroup>
+        </section>
+      )}
+    </nav>
+  );
+}

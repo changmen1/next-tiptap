@@ -1,0 +1,1120 @@
+/* ============ Workspace / Paper ============ */
+.workspace {
+  flex: 1 1 auto;
+  overflow: auto;
+  background: var(--workspace-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 60px;
+  position: relative;
+}
+
+.editor-workspace-shell {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  --we-outline-scroll-offset: 80px;
+}
+
+.editor-workspace-shell>.workspace {
+  min-width: 0;
+}
+
+/* ============ Document outline ============ */
+.document-body__outline-rail {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.document-body__outline-rail .outline-panel {
+  pointer-events: auto;
+}
+
+.outline-panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 220px;
+  max-width: 220px;
+  overflow: hidden;
+  background: var(--bg-elev);
+  border-right: 1px solid var(--border);
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+}
+
+.outline-panel--top-left {
+  left: 0;
+  transform-origin: top left;
+}
+
+.outline-panel__header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.outline-panel__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.outline-panel__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--fg-mute);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+}
+
+.outline-panel__close:hover {
+  color: var(--fg);
+  background: var(--accent-soft);
+}
+
+.outline-panel__empty {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--fg-mute);
+}
+
+.outline-panel__list {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  padding: 4px 0 16px;
+  overflow-y: auto;
+}
+
+.outline-panel__item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 5px 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--fg-mute);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+.outline-panel__item:hover,
+.outline-panel__item.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.outline-panel__text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.outline-panel__item--h1 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.outline-panel__item--h2 {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.outline-panel__item--h3,
+.outline-panel__item--h4,
+.outline-panel__item--h5,
+.outline-panel__item--h6 {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.outline-panel__item.is-active {
+  font-weight: 500;
+}
+
+/* ============ Split layout (Editor | Preview) ============ */
+.split-main {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.split-pane {
+  flex: 1 1 50%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.split-divider {
+  flex: 0 0 4px;
+  background: var(--border);
+  cursor: default;
+}
+
+/* ============ Preview pane ============ */
+.preview-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--workspace-bg);
+}
+
+.preview-header {
+  flex: 0 0 auto;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-mute);
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.preview-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.preview-zoom .rb-btn.sm {
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.preview-zoom .zoom-readout {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  min-width: 44px;
+  text-align: center;
+  cursor: pointer;
+  padding: 2px 4px;
+  color: var(--fg);
+}
+
+.preview-zoom .zoom-readout:hover {
+  background: var(--accent-soft);
+  border-color: var(--border);
+}
+
+/* PDF download button in the preview header. */
+.preview-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: auto;
+  margin-right: 8px;
+}
+
+.preview-pdf-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 10px !important;
+  min-height: 24px;
+  font-size: 11.5px !important;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--accent, #1f4f88);
+  cursor: pointer;
+}
+
+.preview-pdf-btn:hover {
+  background: var(--accent, #1f4f88);
+  color: #fff;
+  border-color: var(--accent, #1f4f88);
+}
+
+.preview-scroll {
+  flex: 1 1 auto;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0 60px;
+}
+
+.preview-stack {
+  transition: transform 120ms ease-out;
+}
+
+.preview-paper {
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--paper-edge);
+  margin-bottom: 24px;
+}
+
+.preview-content {
+  font-family: var(--font-paper);
+  color: var(--fg);
+  font-size: 11pt;
+  line-height: 1.15;
+  outline: none;
+}
+
+.ruler-wrap {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  /* Self-centered like .paper-canvas so horizontal scroll keeps them aligned. */
+  align-self: center;
+  padding: 4px 0 0;
+  pointer-events: none;
+}
+
+.ruler-wrap>.ruler {
+  pointer-events: auto;
+}
+
+.ruler {
+  position: relative;
+  height: 22px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  font-size: 9px;
+  color: var(--fg-mute);
+  user-select: none;
+  pointer-events: auto;
+}
+
+.ruler-margin {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(-45deg,
+      rgba(24, 90, 189, 0.06),
+      rgba(24, 90, 189, 0.06) 3px,
+      transparent 3px,
+      transparent 6px);
+  border-right: 1px solid rgba(24, 90, 189, 0.25);
+}
+
+.ruler-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.ruler-tick.major {
+  background: var(--fg-mute);
+}
+
+.ruler-tick.minor {
+  top: 12px;
+  background: var(--border-strong);
+}
+
+.ruler-num {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.ruler-handle {
+  position: absolute;
+  top: -3px;
+  width: 12px;
+  height: 14px;
+  margin-left: -6px;
+  padding: 0;
+  background: var(--accent);
+  border: 1px solid #fff;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  cursor: ew-resize;
+  pointer-events: auto;
+  z-index: 2;
+  transition: transform 80ms ease, box-shadow 80ms ease;
+}
+
+.ruler-handle:hover,
+.ruler-handle.active {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 3px rgba(24, 90, 189, 0.25), 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.ruler-handle.left {
+  transform-origin: center;
+}
+
+.ruler-handle.right {
+  transform-origin: center;
+}
+
+.ruler-readout {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.paper-canvas {
+  transform: scale(var(--zoom, 1));
+  transform-origin: top center;
+  transition: transform 120ms ease-out;
+}
+
+/* === Multi-page stack ===
+ * `.paper-stack` is positioned `relative` and contains:
+ *   - N `.page-bg` siblings (one per page) that paint A4 backgrounds
+ *   - one absolutely-positioned `.paper-content-wrap` overlaying them all
+ * The editable content flows continuously through the stack; the gaps
+ * between `.page-bg` tiles act as visible page boundaries.
+ */
+.paper-stack {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.page-bg {
+  width: 100%;
+  background: var(--paper);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10), 0 1px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--paper-edge);
+  position: relative;
+}
+
+/* Mask the visual gap between successive page tiles. The dead zone
+ * between two pages (footer band of N + visual gap + letterhead of N+1)
+ * must hide any cell border that the editable content might extend into
+ * it during pagination, so this strip paints a distinctly darker shade
+ * than the workspace bg so the page break is clearly visible. */
+.page-bg:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: 100%;
+  height: 24px;
+  background: #c9ccd2;
+  z-index: 5;
+  pointer-events: none;
+}
+
+html[data-theme='dark'] .page-bg:not(:last-child)::after {
+  background: #0a0a0a;
+}
+
+.page-bg .page-number {
+  position: absolute;
+  right: 8px;
+  bottom: 6mm;
+  font-size: 10px;
+  color: var(--fg-mute);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* ============ Letterhead ============
+ * Rendered as an absolutely-positioned image at the top of every page
+ * (both editor page-bg tiles and the preview paper). Sits behind the
+ * editable content so the user can type over/under it. The default top
+ * margin should be large enough to clear it (~30mm).
+ */
+.page-letterhead,
+.preview-paper>.page-letterhead {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  width: calc(100% + 2px);
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  background: var(--paper);
+  z-index: 5;
+}
+
+.page-letterhead-meta,
+.preview-paper>.page-letterhead-meta {
+  position: absolute;
+  top: calc(var(--letterhead-safe-px, 83px) + 6mm);
+  left: 20mm;
+  right: 15mm;
+  height: 8mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8mm;
+  font-size: 10pt;
+  color: #1b1b1b;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  pointer-events: none;
+  user-select: none;
+  z-index: 6;
+}
+
+/* Footer image: anchored to the bottom edge, full width (edge-to-edge
+ * with a 1px bleed each side to cover the page-edge anti-alias seam).
+ * Height is auto so the image renders at its natural aspect ratio. */
+.page-footer,
+.preview-paper>.page-footer {
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  width: calc(100% + 2px);
+  height: auto;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+  background: var(--paper);
+  z-index: 5;
+}
+
+.paper-content-wrap {
+  /* When paginated, inline-styled to fill the stack. The chrome layers
+   * (letterhead/meta/footer/gap-mask) intentionally use higher z-index
+   * to mask any pagination overflow that lands in the dead zones. */
+  position: relative;
+  z-index: 1;
+}
+
+/* Pagination spacer (widget decoration injected by the Pagination plugin
+ * before any block that would cross a page boundary — pushes the block
+ * onto the next page). */
+.pm-page-spacer {
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Preview pane mirrors the editor's pagination layout. */
+.preview-stack {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.preview-page-bg {
+  /* Inherit the 4-zone gradient + paper color from .page-bg; only add chrome. */
+  box-shadow: var(--shadow);
+  border: 1px solid var(--paper-edge);
+}
+
+.preview-pane .workspace,
+.preview-pane .paper {
+  /* Preview always renders with multi-page tiles when paginated; the
+   * inner .paper has no background of its own. */
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+/* Legacy single-paper styling (used when pagination is OFF). */
+.workspace[data-paginated='0'] .paper-stack {
+  width: auto !important;
+}
+
+.workspace[data-paginated='0'] .page-bg {
+  display: none;
+}
+
+.workspace[data-paginated='0'] .paper {
+  width: var(--page-w);
+  min-height: auto;
+  padding: 28px 15mm 28px 20mm;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  border: 1px solid var(--paper-edge);
+}
+
+/* When paginated, the .paper element is just a transparent wrapper for the
+ * editor content — the visual paper is provided by .page-bg behind it.
+ */
+.workspace[data-paginated='1'] .paper {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+.paper-content {
+  font-family: var(--font-paper);
+  color: var(--fg);
+  font-size: 11pt;
+  line-height: 1.15;
+}
+
+/* ProseMirror editor styles (Word defaults) */
+.ProseMirror {
+  outline: none;
+  min-height: calc(var(--page-h) - var(--page-margin) * 2);
+  font-family: var(--font-paper);
+  font-size: 11pt;
+  line-height: 1.15;
+  color: #222;
+  /* Establish a positioning context so descendants of the editor have
+   * .ProseMirror as their offsetParent. The Pagination plugin uses
+   * bounding rects relative to view.dom, so this also keeps measurements
+   * consistent (no leakage from .paper-content-wrap padding). */
+  position: relative;
+}
+
+.workspace[data-paginated='0'] .ProseMirror {
+  min-height: 400px;
+}
+
+.workspace[data-paginated='1'] .ProseMirror {
+  min-height: 0;
+}
+
+/* Word's selection blue */
+.ProseMirror ::selection {
+  background: #b3d4fc;
+}
+
+/* Word default: 8pt space after each paragraph, no space before. */
+.ProseMirror p {
+  margin: 0 0 8pt;
+}
+
+/* Word heading defaults (Title 28pt, H1 16pt blue, H2 13pt blue, H3 12pt darker blue, H4 11pt italic). */
+.ProseMirror h1 {
+  font-size: 16pt;
+  margin: 12pt 0 0;
+  font-weight: 400;
+  color: #2e74b5;
+  line-height: 1.25;
+}
+
+.ProseMirror h2 {
+  font-size: 13pt;
+  margin: 2pt 0 0;
+  font-weight: 400;
+  color: #2e74b5;
+  line-height: 1.25;
+}
+
+.ProseMirror h3 {
+  font-size: 12pt;
+  margin: 2pt 0 0;
+  font-weight: 400;
+  color: #1f4e79;
+  line-height: 1.25;
+}
+
+.ProseMirror h4 {
+  font-size: 11pt;
+  margin: 2pt 0 0;
+  font-weight: 400;
+  font-style: italic;
+  color: #2e74b5;
+  line-height: 1.25;
+}
+
+.ProseMirror h5 {
+  font-size: 11pt;
+  margin: 2pt 0 0;
+  font-weight: 400;
+  color: #2e74b5;
+  line-height: 1.25;
+}
+
+.ProseMirror h6 {
+  font-size: 11pt;
+  margin: 2pt 0 0;
+  font-weight: 400;
+  font-style: italic;
+  color: #1f4e79;
+  line-height: 1.25;
+}
+
+/* Word-style list markers per nesting level. */
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 0.5in;
+  margin: 0 0 8pt;
+}
+
+.ProseMirror ul ul {
+  list-style-type: circle;
+}
+
+.ProseMirror ul ul ul {
+  list-style-type: square;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 0.5in;
+  margin: 0 0 8pt;
+}
+
+.ProseMirror ol ol {
+  list-style-type: lower-alpha;
+}
+
+.ProseMirror ol ol ol {
+  list-style-type: lower-roman;
+}
+
+.ProseMirror li {
+  margin: 0;
+}
+
+.ProseMirror li>p {
+  margin: 0;
+}
+
+.ProseMirror blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 8px 0;
+  padding: 4px 12px;
+  color: var(--fg-mute);
+  background: var(--accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.ProseMirror pre,
+.ProseMirror .code-block {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-family: 'Source Code Pro', 'Consolas', monospace;
+  font-size: 10pt;
+  overflow: auto;
+}
+
+.ProseMirror a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.ProseMirror hr.hr {
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  margin: 16px 0;
+}
+
+/* ============ Tables (stock Tiptap styling) ============ */
+.ProseMirror .tableWrapper {
+  margin: 0;
+  padding: 0;
+  /* Don't show a horizontal scrollbar on every table. The contents are
+   * forced to fit the page width below, so overflow is unexpected and
+   * looked like a UI section bar to users. Switch to visible. */
+  overflow: visible;
+  max-width: 100%;
+}
+
+.ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Allow long words / numbers / URLs to wrap inside cells so a single
+   * unbreakable token doesn't push the column past the page width. */
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Pasted tables (Word/Excel) often arrive with explicit inline widths that
+ * overflow the editable content column. Force them into the available
+ * width while preserving their internal column proportions. */
+.ProseMirror table[style*="width"],
+.ProseMirror table[width] {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Cells should never define their own absolute width either; they get
+ * proportional widths from the table-layout: fixed algorithm. */
+.ProseMirror td,
+.ProseMirror th {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.ProseMirror td[style*="width"],
+.ProseMirror th[style*="width"],
+.ProseMirror td[width],
+.ProseMirror th[width] {
+  width: auto !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+}
+
+/* Row-level pagination spacer: a transparent block dropped inside a
+ * <td>/<th> to push that cell's content down to the next page. */
+.ProseMirror td>.pm-page-spacer,
+.ProseMirror th>.pm-page-spacer {
+  display: block;
+  width: 100%;
+  background: transparent;
+}
+
+.ProseMirror td,
+.ProseMirror th {
+  min-width: 1em;
+  border: 1px solid #8c96a3;
+  padding: 6px 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+
+/* Pagination cell-pad mask: the Pagination plugin extends a cell's
+ * padding-bottom to push the next row to the next page. The cell's
+ * left/right verticals would naturally extend through that padding,
+ * producing a visible column line below the row's content. Paint a
+ * paper-coloured pseudo over the padded portion (extending generously
+ * past each side to also cover the table's outer border + neighbour
+ * cells' shared collapsed border) so the borders appear to stop at
+ * the row's natural bottom. */
+.ProseMirror td[data-pg-pad],
+.ProseMirror th[data-pg-pad] {
+  overflow: visible;
+}
+
+.ProseMirror td[data-pg-pad]::before,
+.ProseMirror th[data-pg-pad]::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -1px;
+  height: calc(var(--pg-pad-h, 0px) + 2px);
+  background: var(--paper);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.ProseMirror th {
+  /* Default <th> shows no fill so an unstyled table looks like plain rows
+   * and columns. Header fills are opt-in via data-table-style presets. */
+  background: transparent;
+  font-weight: bold;
+  text-align: left;
+}
+
+.ProseMirror table[data-table-style] th {
+  background: #f1f3f5;
+}
+
+.ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(200, 200, 255, 0.4);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: #adf;
+  pointer-events: none;
+}
+
+.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+/* Hover-only "select-all" button parked at the top-right corner of any
+ * table inside the editor. Rendered by the TableSelectAll plugin as a
+ * single shared element appended to .paper-content-wrap; positioned
+ * absolutely over whichever table the user is currently hovering. */
+.we-table-select-all {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  color: #1f4f88;
+  border: 1px solid #1f4f88;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  z-index: 8;
+  transition: transform 80ms ease, background 80ms ease, color 80ms ease;
+}
+
+.we-table-select-all:hover {
+  background: #1f4f88;
+  color: #fff;
+  transform: scale(1.06);
+}
+
+.we-table-select-all:active {
+  transform: scale(0.96);
+}
+
+.we-table-select-all svg {
+  display: block;
+}
+
+html[data-theme='dark'] .we-table-select-all {
+  background: #2a2a2a;
+  color: #82b1ff;
+  border-color: #82b1ff;
+}
+
+html[data-theme='dark'] .we-table-select-all:hover {
+  background: #82b1ff;
+  color: #1a1a1a;
+}
+
+html[data-theme='dark'] .ProseMirror td,
+html[data-theme='dark'] .ProseMirror th {
+  border-color: #555;
+}
+
+html[data-theme='dark'] .ProseMirror th {
+  background: #333;
+}
+
+/* Images */
+.ProseMirror img.we-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.ProseMirror img.we-image.ProseMirror-selectednode {
+  outline: 2px solid var(--accent);
+}
+
+/* Page break */
+.ProseMirror .page-break {
+  display: block;
+  margin: 18px 0;
+  text-align: center;
+  position: relative;
+  height: 0;
+  border-top: 2px dashed var(--accent);
+}
+
+.ProseMirror .page-break .pb-label {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--paper);
+  color: var(--accent);
+  padding: 0 8px;
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Task list */
+.ProseMirror ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 4px;
+}
+
+.ProseMirror ul[data-type='taskList'] li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ProseMirror ul[data-type='taskList'] li>label {
+  user-select: none;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--fg-mute);
+  float: left;
+  pointer-events: none;
+  height: 0;
+}
+
+/* Selection */
+.ProseMirror ::selection {
+  background: rgba(24, 90, 189, 0.25);
+}
+
+/* Print */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .paper,
+  .paper * {
+    visibility: visible;
+  }
+
+  .paper {
+    box-shadow: none;
+    border: 0;
+    margin: 0;
+    width: auto;
+    min-height: auto;
+    padding: 0;
+  }
+
+  .titlebar,
+  .ribbon,
+  .statusbar,
+  .ruler {
+    display: none !important;
+  }
+
+  .workspace {
+    background: white;
+    padding: 0;
+  }
+
+  .paper-canvas {
+    transform: none !important;
+  }
+
+  .page-break {
+    page-break-after: always;
+    border: 0 !important;
+  }
+
+  .page-break .pb-label {
+    display: none;
+  }
+}
+
+
+
+
+/* ============ Page background ============
+ * The page-bg div paints solid paper colour for each tile. The four
+ * page zones (header / SEPL meta / content / footer) are visualised by
+ * the actual chrome elements (page-letterhead img, page-letterhead-meta,
+ * page-footer) sitting on top — there are no debug zone tints because
+ * those produced visible strips on the left/right page margins that
+ * looked like ghost rows next to the table content area. */
+.page-bg {
+  background-color: var(--paper);
+}
+
+/* The footer must paint OPAQUELY so any cell border that the pagination
+ * plugin pushes into the footer band is masked. The footer.png image
+ * itself provides the visual; the wrapper rule above keeps it edge-to-
+ * edge and opaque. */
+
+/* SEPL meta band: page 1 is yellow with the reference number, pages 2+
+ * are paper-white (empty placeholder kept for masking). */
+.workspace .page-letterhead-meta,
+.preview-paper>.page-letterhead-meta {
+  background: #fff3b6;
+}
+
+/* On pages 2+, the SEPL reference number block is suppressed (only
+ * shown on page 1). The empty band still needs to mask any cell border
+ * the pagination plugin extends into its area, but should be visually
+ * indistinguishable from plain paper — page-break is conveyed by the
+ * gap between tiles, not by a coloured strip. */
+.page-letterhead-meta[data-empty='1'] {
+  background: var(--paper) !important;
+}
+
+/* SEPL meta band reservation: page 1 only.
+ * The paper-content-wrap padding-top is now just `letterheadSafePx`
+ * (no +14mm) so page 2+ content starts right under the letterhead.
+ * Page 1 still needs 14mm of clearance for the SEPL meta band — add
+ * it as padding on the very first top-level CONTENT node in the
+ * document so the cost is paid once, on page 1 only. Padding (not
+ * margin) avoids margin-collapse with a heading's own top margin.
+ *
+ * The Pagination plugin may inject `.pm-page-spacer` widgets at the
+ * start of the document; we must skip those so the actual first
+ * paragraph keeps its 14mm reservation. Without the `:not(...)` /
+ * `.pm-page-spacer + ...` pair, inserting/removing the first spacer
+ * toggles the 14mm padding, which creates a feedback loop that makes
+ * rows oscillate between pages. */
+.workspace[data-paginated='1'] .ProseMirror> :first-child:not(.pm-page-spacer),
+.workspace[data-paginated='1'] .ProseMirror>.pm-page-spacer:first-child+ :not(.pm-page-spacer),
+.preview-pane .ProseMirror.preview-content> :first-child:not(.pm-page-spacer),
+.preview-pane .ProseMirror.preview-content>.pm-page-spacer:first-child+ :not(.pm-page-spacer) {
+  padding-top: 14mm;
+}
+
+/* Drop any green tinting on the editable wrapper - the green band is
+ * painted by .page-bg, so the editable layer must stay transparent. */
+.workspace[data-paginated='1'] .paper-content-wrap,
+.workspace[data-paginated='0'] .paper {
+  background: transparent;
+}
