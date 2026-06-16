@@ -4,6 +4,7 @@ import { useEditor } from '@tiptap/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import OutlinePanel from './components/outline/OutlinePanel';
 import Ribbon from './components/ribbon/Ribbon';
+import StatusBar from './components/StatusBar';
 import TitleBar from "./components/TitleBar";
 import EditorSurface from './editor/EditorSurface';
 import { buildExtensions } from './editor/extensions';
@@ -213,6 +214,7 @@ export default function Home() {
           <PreviewPane editor={editor} />
         </div> */}
       </div>
+      <StatusBar editor={editor} />
     </div>
   );
 }
