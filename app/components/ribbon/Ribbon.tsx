@@ -11,7 +11,55 @@ interface Props {
   onAction: (action: string, payload?: unknown) => void;
 }
 
-const SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
+// const SIZES = ['8', '9', '10', '10.5', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
+const SIZES: { label: string; value: string }[] = [
+  // 中文字号
+  { label: '初号', value: '56px' },
+  { label: '小初', value: '48px' },
+
+  { label: '一号', value: '34.67px' },
+  { label: '小一', value: '32px' },
+
+  { label: '二号', value: '29.33px' },
+  { label: '小二', value: '24px' },
+
+  { label: '三号', value: '21.33px' },
+  { label: '小三', value: '20px' },
+
+  { label: '四号', value: '18.67px' },
+  { label: '小四', value: '16px' },
+
+  { label: '五号', value: '14px' },
+  { label: '小五', value: '12px' },
+
+  { label: '六号', value: '10px' },
+  { label: '小六', value: '8.67px' },
+
+  { label: '七号', value: '7.33px' },
+  { label: '八号', value: '6.67px' },
+
+  // 数字字号
+  { label: '5', value: '6.67px' },
+  { label: '5.5', value: '7.33px' },
+  { label: '6.5', value: '8.67px' },
+  { label: '7.5', value: '10px' },
+  { label: '8', value: '10.67px' },
+  { label: '9', value: '12px' },
+  { label: '10', value: '13.33px' },
+  { label: '10.5', value: '14px' },
+  { label: '11', value: '14.67px' },
+  { label: '12', value: '16px' },
+  { label: '14', value: '18.67px' },
+  { label: '16', value: '21.33px' },
+  { label: '18', value: '24px' },
+  { label: '20', value: '26.67px' },
+  { label: '22', value: '29.33px' },
+  { label: '24', value: '32px' },
+  { label: '26', value: '34.67px' },
+  { label: '28', value: '37.33px' },
+  { label: '36', value: '48px' },
+  { label: '42', value: '56px' },
+];
 const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'];
 const FIRST_LINE_INDENTS = [
   // 中文论文常见首行缩进为 2em，这里也保留 1/3 字符作为可选项。
@@ -22,7 +70,13 @@ const FIRST_LINE_INDENTS = [
 ] as const;
 
 const FONT_FAMILIES: { label: string; value: string }[] = [
-  // 字体值按 CSS font-family 写法保存，导出 HTML 时可直接复用。
+  // 字体值按 CSS font-family 写法保存，导出 HTML 时直接复用。
+  { label: "宋体", value: "SimSun, Songti SC, serif" },
+  { label: "黑体", value: "SimHei, Heiti SC, sans-serif" },
+  { label: "楷体", value: "KaiTi, Kaiti SC, serif" },
+  { label: "仿宋", value: "FangSong, STFangsong, serif" },
+  { label: "微软雅黑", value: "Microsoft YaHei, sans-serif" },
+  { label: "等线", value: "DengXian, sans-serif" },
   { label: 'Aptos (Body)', value: 'Aptos, Calibri, Segoe UI, sans-serif' },
   { label: 'Calibri', value: 'Calibri, sans-serif' },
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
@@ -88,7 +142,7 @@ const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Ed
 
 const CASE_ACTIONS: { id: string; label: string; transform: (s: string) => string }[] = [
   // 只对选中文本做纯字符串转换，不保留复杂大小写语言规则。
-  { id: 'sentence', label: 'Sentence case', transform: (s) => s.replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase()).replace(/(\w)([A-Z])/g, (_, a, b) => a + b.toLowerCase()) },
+  { id: 'sentence', label: '句首大写', transform: (s) => s.replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase()).replace(/(\w)([A-Z])/g, (_, a, b) => a + b.toLowerCase()) },
   { id: 'lower', label: 'lowercase', transform: (s) => s.toLowerCase() },
   { id: 'upper', label: 'UPPERCASE', transform: (s) => s.toUpperCase() },
   { id: 'capitalize', label: 'Capitalize Each Word', transform: (s) => s.replace(/\b\w/g, (m) => m.toUpperCase()) },
@@ -361,12 +415,12 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
   const { showFormattingMarks, toggleFormattingMarks } = useEditorStore();
 
   const tabs: { id: TabId; label: string; contextual?: boolean }[] = [
-    { id: 'home', label: 'Home' },
-    { id: 'insert', label: 'Insert' },
+    { id: 'home', label: '开始' },
+    { id: 'insert', label: '插入' },
     ...(state.inTable
       ? ([
-        { id: 'tdesign', label: 'Table Design', contextual: true },
-        { id: 'tlayout', label: 'Table Layout', contextual: true }
+        { id: 'tdesign', label: '表格设计', contextual: true },
+        { id: 'tlayout', label: '表格布局', contextual: true }
       ] as { id: TabId; label: string; contextual?: boolean }[])
       : [])
   ];
@@ -391,71 +445,71 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
 
       {activeTab === 'home' && (
         <section className="ribbon-panel home-panel" role="tabpanel">
-          {/* === Clipboard === */}
-          <RGroup label="Clipboard">
+          {/* === 剪贴板 === */}
+          <RGroup label="剪贴板">
             <div className="clipboard-group">
               <SplitButton
                 stacked
                 main={
                   <span className="rb-big">
                     <span className="ico ico-paste" aria-hidden>📋</span>
-                    <span className="rb-big-label">Paste</span>
+                    <span className="rb-big-label">粘贴</span>
                   </span>
                 }
-                title="Paste (Ctrl+V)"
+                title="粘贴 (Ctrl+V)"
                 onClick={doPaste}
                 popover={(close) => (
                   <div className="popover-list">
                     <button type="button" className="pop-item" onClick={() => { doPaste(); close(); }}>
                       <span className="ico" aria-hidden>📋</span>
-                      <span>Keep Source Formatting</span>
+                      <span>保留源格式</span>
                     </button>
                     <button type="button" className="pop-item" onClick={() => { doPasteText(); close(); }}>
                       <span className="ico" aria-hidden>🅣</span>
-                      <span>Keep Text Only</span>
+                      <span>仅保留文本</span>
                     </button>
                   </div>
                 )}
               />
               <div className="clip-stack">
-                <RBtn editor={editor} title="Cut (Ctrl+X)" onClick={doCut}>
-                  <span aria-hidden>✂</span> Cut
+                <RBtn editor={editor} title="剪切 (Ctrl+X)" onClick={doCut}>
+                  <span aria-hidden>✂</span> 剪切
                 </RBtn>
-                <RBtn editor={editor} title="Copy (Ctrl+C)" onClick={doCopy}>
-                  <span aria-hidden>🗐</span> Copy
+                <RBtn editor={editor} title="复制 (Ctrl+C)" onClick={doCopy}>
+                  <span aria-hidden>🗐</span> 复制
                 </RBtn>
                 <RBtn
                   editor={editor}
                   active={painterActive}
-                  title="Format Painter (double-click for sticky)"
+                  title="格式刷（双击可锁定）)"
                   onClick={() => (painterActive ? deactivatePainter() : startPainter(false))}
                 >
                   <span
                     onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); startPainter(true); }}
                     aria-hidden
-                  >🖌</span> Format
+                  >🖌</span> 格式刷
                 </RBtn>
                 <button
                   type="button"
                   className="rb-btn danger"
-                  title="Delete current block (Ctrl+Shift+Delete) — removes the table, page break, cover page, image, etc. that the cursor is in."
+                  title="删除当前块 (Ctrl+Shift+Delete) — 移除光标所在的表格、分页符、封面页、图像等。"
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={deleteBlock}
                 >
-                  <span aria-hidden>🗑</span> Delete block
+                  <span aria-hidden>🗑</span> 删除区块
                 </button>
               </div>
             </div>
           </RGroup>
 
-          {/* === Font === */}
-          <RGroup label="Font">
+          {/* === 字体 ===  https://tiptap.dev/docs/editor/extensions/functionality/fontfamily*/}
+          <RGroup label="字体">
             <div className="row">
               <select
                 className="rb-select font-family"
                 value={state.fontFamily || FONT_FAMILIES[0].value}
                 onChange={(e) => focus().setFontFamily(e.target.value).run()}
-                title="Font family"
+                title="设置不同的字体"
                 style={{ fontFamily: state.fontFamily || undefined }}
               >
                 {FONT_FAMILIES.map((f) => (
@@ -464,17 +518,17 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
               </select>
               <select
                 className="rb-select font-size"
-                value={state.fontSize || '11'}
+                value={state.fontSize || SIZES[0].value}
                 onChange={(e) => focus().setFontSize(`${e.target.value}pt`).run()}
-                title="Font size"
+                title="设置字号的大小"
               >
-                {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {SIZES.map((s) => <option key={s.label} value={s.value}>{s.label}</option>)}
               </select>
-              <RBtn editor={editor} title="Grow font (Ctrl+Shift+>)" onClick={() => adjustFontSize(2)}>A<sup>↑</sup></RBtn>
-              <RBtn editor={editor} title="Shrink font (Ctrl+Shift+<)" onClick={() => adjustFontSize(-2)}>A<sup>↓</sup></RBtn>
+              <RBtn editor={editor} title="增大字号 (Ctrl+Shift+>)" onClick={() => adjustFontSize(2)}>A⁺</RBtn>
+              <RBtn editor={editor} title="缩小字号 (Ctrl+Shift+<)" onClick={() => adjustFontSize(-2)}>A⁻</RBtn>
               <SplitButton
-                main={<span title="Change Case">Aa</span>}
-                title="Change Case"
+                main={<span title="更改大小写">Aa</span>}
+                title="更改大小写"
                 onClick={() => applyCase(CASE_ACTIONS[0].transform)}
                 popover={(close) => (
                   <div className="popover-list">

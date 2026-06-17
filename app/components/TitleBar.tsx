@@ -19,12 +19,12 @@ const TitleBar: FC<Props> = ({ onSave, onPrint, onOpenDocs, onFileAction, outlin
     const { saveStatus, toggleTheme } = useEditorStore();
     const [fileOpen, setFileOpen] = useState(false);
 
-    // saveStatus 来自全局 store，映射为用户可读的状态文案。
+    // saveStatus 全局 store，映射用户可读的状态文案
     const statusText: Record<typeof saveStatus, string> = {
-        saved: 'All changes saved',
-        saving: 'Saving…',
-        dirty: 'Unsaved changes',
-        error: 'Save failed'
+        saved: '所有更改已保存',
+        saving: '保存…',
+        dirty: '未保存的更改',
+        error: '保存失败'
     };
 
     return (
@@ -39,21 +39,21 @@ const TitleBar: FC<Props> = ({ onSave, onPrint, onOpenDocs, onFileAction, outlin
                 <span className={`save-status status-${saveStatus}`}>{statusText[saveStatus]}</span>
             </div>
             <div className="titlebar-center">
-                <button className="qa-btn" onClick={onSave} title="Save (Ctrl+S)">💾</button>
-                <button className="qa-btn" onClick={onPrint} title="Print / PDF (Ctrl+P)">🖨</button>
+                <button className="qa-btn" onClick={onSave} title="保存 (Ctrl+S)">💾</button>
+                <button className="qa-btn" onClick={onPrint} title="打印 (Ctrl+P)">🖨</button>
             </div>
             <div className="titlebar-right">
                 <button
                     className={`icon-btn ${outlineOpen ? 'active' : ''}`}
                     onClick={onToggleOutline}
-                    title="Document outline"
+                    title="文档大纲"
                     aria-pressed={outlineOpen}
                 >
                     ☰
                 </button>
-                <button className="icon-btn" onClick={onOpenDocs} title="My Documents">📁</button>
+                <button className="icon-btn" onClick={onOpenDocs} title="我的文档">📁</button>
                 <button className="icon-btn" onClick={() => { }} title="PDF预览">📄</button>
-                <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">🌓</button>
+                <button className="icon-btn" onClick={toggleTheme} title="主题">🌓</button>
             </div>
         </header>
     )
