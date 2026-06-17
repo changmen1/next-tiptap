@@ -1,26 +1,27 @@
-/* ============ Ribbon ============ */
+/* ============ Ribbon 工具栏 ============
+   Ribbon 放在编辑器画布上方，所有下拉菜单/弹层都需要能越过工具栏底部显示。 */
 .ribbon {
   flex: 0 0 auto;
   background: var(--bg-elev);
   border-bottom: 1px solid var(--border);
-  /* Sit above the editor surface so popovers / dropdowns never get clipped. */
+  /* 层级高于编辑器画布，避免弹层被正文区域盖住。 */
   position: relative;
   z-index: 20;
 }
 
-/* Flat ribbon: no tab strip, no header — groups laid out horizontally. */
+/* 扁平工具栏模式：隐藏标签栏和头部，仅横向排列分组。 */
 .ribbon.ribbon-flat .ribbon-tabs,
 .ribbon.ribbon-flat .ribbon-panel-wrap > .ribbon-header {
   display: none;
 }
-/* IMPORTANT: do NOT clip the ribbon — popovers must be free to extend below. */
+/* 重要：不能裁剪 Ribbon，否则下拉菜单无法向下展开。 */
 .ribbon.ribbon-flat .ribbon-panel {
   overflow: visible;
   flex-wrap: wrap;
   row-gap: 4px;
 }
 
-/* ============ Tabbed ribbon (Word-style) ============ */
+/* ============ 带标签的 Word 风格 Ribbon ============ */
 .ribbon.ribbon-tabbed .ribbon-panel {
   overflow: visible;
   flex-wrap: wrap;
@@ -55,7 +56,7 @@
   border-bottom-color: var(--accent, #2e74b5);
   font-weight: 600;
 }
-/* Contextual tabs (Table Design / Layout) get an accent banner above. */
+/* 表格上下文标签（Table Design / Layout）顶部显示强调色条。 */
 .ribbon-tab.contextual {
   position: relative;
   color: var(--accent, #2e74b5);
@@ -229,7 +230,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Dropdowns / popovers */
+/* 下拉菜单与弹层。 */
 .dropdown-host { position: relative; }
 .popover {
   position: absolute;
@@ -240,7 +241,7 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   padding: 8px;
-  /* Above ribbon, editor, ruler, status bar; below modal dialogs (z-index 100). */
+  /* 高于工具栏、编辑器、标尺和状态栏；低于模态弹窗（z-index 100）。 */
   z-index: 90;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   max-height: min(80vh, 480px);
@@ -275,7 +276,7 @@
 
 .symbols { flex-wrap: wrap; max-width: 280px; }
 
-/* ====== Generic split button + popover items ====== */
+/* ====== 通用拆分按钮与弹层条目 ====== */
 .rb-btn.split {
   display: inline-flex;
   gap: 6px;
@@ -330,7 +331,7 @@
 }
 
 
-/* ============ Table style gallery (popover) ============ */
+/* ============ 表格样式图库（弹层内） ============ */
 .popover-table { min-width: 320px; }
 .tp-title { font-size: 11px; color: var(--fg-mute); padding: 2px 2px 6px; }
 .tp-section {
@@ -377,7 +378,7 @@
 .tp-style-preview .r > span:last-child { border-right: 0; }
 .tp-style-preview .r.r0 > span { border-top: 0; }
 
-/* Per-style preview tints */
+/* 各表格样式预览色。 */
 .tp-style-preview[data-table-style="plain"] .r > span { border-color: transparent; }
 .tp-style-preview[data-table-style="plain"] { border-color: #ccc; }
 
@@ -401,17 +402,17 @@
 .tp-style-clear { grid-column: span 2; flex-direction: row; justify-content: center; }
 
 
-/* ============ Word-like table presets (applied in editor) ============ */
+/* ============ 类 Word 表格预设（作用于编辑器正文表格） ============ */
 .ProseMirror table.we-table { border-collapse: collapse; }
 
-/* Plain - minimal borders */
+/* Plain：最少边框。 */
 .ProseMirror table[data-table-style="plain"],
 .ProseMirror table[data-table-style="plain"] th,
 .ProseMirror table[data-table-style="plain"] td {
   border-color: #d0d0d0 !important;
 }
 
-/* Grid - explicit 1px black borders all-round */
+/* Grid：所有单元格显式 1px 黑色边框。 */
 .ProseMirror table[data-table-style="grid"] th,
 .ProseMirror table[data-table-style="grid"] td {
   border: 1px solid #444 !important;
@@ -420,7 +421,7 @@
   background: #f1f3f5 !important;
 }
 
-/* Accent presets - colored header row */
+/* Accent：彩色表头。 */
 .ProseMirror table[data-table-style="grid-accent1"] th,
 .ProseMirror table[data-table-style="grid-accent1"] td { border: 1px solid #2e74b5 !important; }
 .ProseMirror table[data-table-style="grid-accent1"] tr:first-child th,
@@ -442,7 +443,7 @@
   background: #c00000 !important; color: #fff !important;
 }
 
-/* List Light - horizontal borders only */
+/* List Light：仅横向分隔线。 */
 .ProseMirror table[data-table-style="list-light"] th,
 .ProseMirror table[data-table-style="list-light"] td {
   border: 0 !important;
@@ -456,7 +457,7 @@
   font-weight: 600;
 }
 
-/* Banded rows */
+/* 隔行底色。 */
 .ProseMirror table[data-table-style="banded-rows"] th,
 .ProseMirror table[data-table-style="banded-rows"] td {
   border: 1px solid #ccc !important;
@@ -466,7 +467,7 @@
   background: #f3f6fa !important;
 }
 
-/* Banded columns */
+/* 隔列底色。 */
 .ProseMirror table[data-table-style="banded-cols"] th,
 .ProseMirror table[data-table-style="banded-cols"] td {
   border: 1px solid #ccc !important;
@@ -476,7 +477,7 @@
   background: #f3f6fa !important;
 }
 
-/* Banded + accent header */
+/* 隔行底色 + 强调色表头。 */
 .ProseMirror table[data-table-style="banded-accent"] th,
 .ProseMirror table[data-table-style="banded-accent"] td {
   border: 1px solid #2e74b5 !important;
@@ -489,7 +490,7 @@
   background: #dbe6f3 !important;
 }
 
-/* Total Row - emphasised last row */
+/* Total Row：强调最后一行。 */
 .ProseMirror table[data-table-style="total-row"] th,
 .ProseMirror table[data-table-style="total-row"] td {
   border: 1px solid #999 !important;
@@ -501,7 +502,7 @@
   background: #f5f5f5 !important;
 }
 
-/* ============ Contextual ribbon (Table Design / Table Layout) ============ */
+/* ============ 表格上下文 Ribbon（Table Design / Table Layout） ============ */
 .group.contextual {
   position: relative;
   background: linear-gradient(180deg, rgba(46,116,181,0.06), transparent 32%);
@@ -524,7 +525,7 @@
   margin: 0 4px;
 }
 
-/* === Quick style chip strip in Table Design === */
+/* === Table Design 中的快速样式条 === */
 .tdesign-styles {
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -549,7 +550,7 @@
   height: 30px;
 }
 
-/* === Cell alignment 3x3 grid === */
+/* === 单元格九宫格对齐控件 === */
 .cell-align {
   display: grid;
   grid-template-columns: repeat(3, 18px);
@@ -585,7 +586,7 @@
 .ca-dot.h-center.v-middle { transform: translate(-50%, -50%); }
 .ca-dot.h-right  { right: 2px; }
 
-/* ============ Border presets (applied via data-table-border) ============ */
+/* ============ 边框预设（通过 data-table-border 生效） ============ */
 .ProseMirror table[data-table-border="all"] th,
 .ProseMirror table[data-table-border="all"] td {
   border: 1px solid #444;
@@ -615,10 +616,10 @@
   border-bottom: 1px solid #888;
 }
 
-/* ============ Home tab — Word-style layout ============ */
+/* ============ Home 页签：Word 风格布局 ============ */
 .home-panel { gap: 0; }
 
-/* --- Clipboard --- */
+/* --- 剪贴板区域 --- */
 .clipboard-group {
   display: flex;
   align-items: stretch;
@@ -638,7 +639,7 @@
   gap: 6px;
 }
 
-/* --- Big stacked button --- */
+/* --- 大号堆叠按钮 --- */
 .rb-big {
   display: flex;
   flex-direction: column;
@@ -653,7 +654,7 @@
 .rb-big .ico { font-size: 20px; line-height: 1; }
 .rb-big-label { white-space: nowrap; }
 
-/* --- Split button --- */
+/* --- 拆分按钮 --- */
 .split-host {
   position: relative;
   display: inline-flex;
@@ -698,7 +699,7 @@
   padding: 2px 4px 6px;
 }
 
-/* --- Font group --- */
+/* --- 字体分组 --- */
 .rb-select.font-family { min-width: 152px; max-width: 180px; }
 .rb-select.font-size { min-width: 56px; max-width: 64px; }
 
@@ -726,10 +727,10 @@
   margin-right: 2px;
 }
 
-/* --- Paragraph group: tighter buttons --- */
+/* --- 段落分组：更紧凑的按钮 --- */
 .home-panel .group .row .rb-btn { font-size: 13px; }
 
-/* --- Styles gallery (Word-like cards) --- */
+/* --- 样式库：类 Word 卡片 --- */
 .styles-group .grp-body { justify-content: center; }
 .styles-gallery {
   display: flex;
@@ -776,11 +777,11 @@
 .style-preview.style-subtitle { font: italic 14px/1.2 'Aptos', Calibri, sans-serif; color: #7f7f7f; }
 .style-preview.style-quote { font: italic 13px/1.2 'Aptos', serif; color: #555; }
 
-/* --- Format painter cursor --- */
+/* --- 格式刷鼠标指针 --- */
 .ProseMirror.fp-cursor,
 .ProseMirror.fp-cursor * { cursor: copy !important; }
 
-/* --- Show formatting marks (toggled on documentElement) --- */
+/* --- 显示格式标记（由 documentElement class 控制） --- */
 html.show-marks .ProseMirror p::after,
 html.show-marks .ProseMirror h1::after,
 html.show-marks .ProseMirror h2::after,
@@ -797,10 +798,10 @@ html.show-marks .ProseMirror br::before {
   opacity: 0.45;
 }
 
-/* ============ Insert tab — Word-style ============ */
+/* ============ Insert 页签：Word 风格 ============ */
 .insert-panel { gap: 0; }
 
-/* Big stacked icon button row */
+/* 大号堆叠图标按钮行。 */
 .big-row {
   display: flex;
   gap: 4px;
@@ -832,7 +833,7 @@ html.show-marks .ProseMirror br::before {
   word-break: keep-all;
 }
 
-/* Big stacked split button (Cover Page, Pictures, etc) */
+/* 大号堆叠拆分按钮（封面、图片等）。 */
 .insert-panel .split-host.stacked {
   align-items: stretch;
 }
@@ -845,7 +846,7 @@ html.show-marks .ProseMirror br::before {
 .insert-panel .split-host.stacked .split-main:hover { background: var(--accent-soft); border-color: var(--border); }
 .insert-panel .split-host.stacked .split-main .rb-big { background: transparent; border: 0; }
 
-/* Cover Page gallery */
+/* 封面页图库。 */
 .cover-gallery {
   display: grid;
   grid-template-columns: repeat(2, 120px);
@@ -885,7 +886,7 @@ html.show-marks .ProseMirror br::before {
 .cover-preview.cover-minimal { align-items: flex-start; padding: 14px 10px; }
 .cover-name { font-size: 11px; color: var(--fg-mute); }
 
-/* Shapes grid */
+/* 形状网格。 */
 .shapes-grid {
   display: grid;
   grid-template-columns: repeat(6, 44px);
@@ -907,7 +908,7 @@ html.show-marks .ProseMirror br::before {
 }
 .shape-cell:hover { border-color: var(--accent); background: var(--accent-soft); }
 
-/* Symbol / Icon grid */
+/* 符号/图标网格。 */
 .symbol-grid {
   display: grid;
   grid-template-columns: repeat(10, 24px);
@@ -933,7 +934,7 @@ html.show-marks .ProseMirror br::before {
 }
 .sym-cell:hover { background: var(--accent-soft); border-color: var(--accent); }
 
-/* Table popover button on Insert tab as a Word-style big stacked button */
+/* Insert 页签中的表格按钮，按 Word 风格大按钮显示。 */
 .insert-panel .dropdown-host > .rb-btn {
   display: flex;
   flex-direction: column;
@@ -948,7 +949,7 @@ html.show-marks .ProseMirror br::before {
 }
 .insert-panel .dropdown-host > .rb-btn:hover { background: var(--accent-soft); border-color: var(--border); }
 
-/* Stacked list for Text group (compact) */
+/* Text 分组中的紧凑堆叠列表。 */
 .stacked-list {
   flex-direction: column;
   align-items: stretch;
@@ -959,7 +960,7 @@ html.show-marks .ProseMirror br::before {
   padding: 4px 8px;
 }
 
-/* === Page-break + cover-page editor styling === */
+/* === 分页符与封面页在编辑器中的显示样式 === */
 .ProseMirror .page-break {
   display: flex;
   align-items: center;
@@ -1006,7 +1007,7 @@ html.show-marks .ProseMirror br::before {
   font-variant-numeric: tabular-nums;
 }
 
-/* Danger / destructive ribbon button (Delete Table) */
+/* 危险/破坏性按钮（例如删除表格）。 */
 .rb-btn.danger {
   color: #b91c1c;
   border-color: transparent;
@@ -1023,4 +1024,3 @@ html.show-marks .ProseMirror br::before {
   background: #fde8e8;
   border-color: #f5c2c2;
 }
-

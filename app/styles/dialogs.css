@@ -1,4 +1,5 @@
-/* ============ Dialogs ============ */
+/* ============ 弹窗 ============
+   Dialog.tsx 只提供通用壳，查找替换、字数统计、文档管理都复用这些样式。 */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -106,7 +107,7 @@
 }
 .docs-del:hover { background: rgba(197, 34, 31, 0.12); color: var(--danger); }
 
-/* ============ Context menu (Word-like right-click on tables) ============ */
+/* ============ 上下文菜单（类 Word 表格右键菜单，预留样式） ============ */
 .ctx-menu {
   position: fixed;
   background: var(--bg-elev);

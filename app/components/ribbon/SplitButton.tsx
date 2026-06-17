@@ -1,27 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface Props {
-  /** Main button content (icon / label). */
+  /** 主按钮内容，可以是图标、文字或组合。 */
   main: React.ReactNode;
-  /** Tooltip on the main button. */
+  /** 主按钮 tooltip。 */
   title?: string;
   active?: boolean;
   disabled?: boolean;
-  /** Action when clicking the main half. */
+  /** 点击主按钮半区时执行的默认动作。 */
   onClick: () => void;
-  /** Popover content rendered when caret is opened. */
+  /** 点击箭头半区后渲染的弹层内容，参数 close 用于子项点击后关闭弹层。 */
   popover: (close: () => void) => React.ReactNode;
-  /** Additional class on the main button. */
+  /** 外层额外 class。 */
   className?: string;
-  /** If true the caret takes full height (Word-style stacked split). */
+  /** true 时箭头占据完整高度，形成 Word 风格的上下堆叠拆分按钮。 */
   stacked?: boolean;
-  /** Optional content shown above the caret on a stacked split. */
+  /** 堆叠模式下箭头上方的可选内容，例如颜色条。 */
   caretLabel?: React.ReactNode;
 }
 
 /**
- * Word-style split-button: clicking the main half runs `onClick`,
- * clicking the caret opens a popover.
+ * Word 风格拆分按钮：
+ * 主按钮执行默认命令，箭头按钮打开更多选项。
  */
 export default function SplitButton({
   main,
@@ -39,6 +39,7 @@ export default function SplitButton({
 
   useEffect(() => {
     if (!open) return;
+    // 弹层打开后，点击组件外部自动关闭。
     const onDoc = (e: MouseEvent) => {
       if (!hostRef.current?.contains(e.target as Node)) setOpen(false);
     };

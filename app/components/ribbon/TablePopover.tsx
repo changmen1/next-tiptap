@@ -7,6 +7,7 @@ interface Props {
 }
 
 const STYLES: { id: string; label: string }[] = [
+  // 这些 id 对应 editor.css 中 table[data-table-style="..."] 的样式规则。
   { id: 'plain', label: 'Plain Table' },
   { id: 'grid', label: 'Grid Table' },
   { id: 'grid-accent1', label: 'Grid · Accent 1' },
@@ -22,6 +23,7 @@ const STYLES: { id: string; label: string }[] = [
 const MAX_ROWS = 8;
 const MAX_COLS = 10;
 
+// 表格插入/样式弹层。它既能通过网格插入新表格，也能给当前表格套用预设样式。
 export default function TablePopover({ editor, inTable }: Props) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
@@ -29,6 +31,7 @@ export default function TablePopover({ editor, inTable }: Props) {
 
   useEffect(() => {
     if (!open) return;
+    // 点击弹层外部关闭，避免用户需要再次点按钮才能收起。
     const onDoc = (e: MouseEvent) => {
       if (!hostRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -37,6 +40,7 @@ export default function TablePopover({ editor, inTable }: Props) {
   }, [open]);
 
   const insert = (r: number, c: number) => {
+    // 插入表格后立即套用 grid 样式，让新表格默认有清晰边框。
     editor
       .chain()
       .focus()
@@ -47,6 +51,7 @@ export default function TablePopover({ editor, inTable }: Props) {
   };
 
   const applyStyle = (id: string) => {
+    // setTableStyle 是 StyledTable 扩展提供的自定义 command。
     editor.chain().focus().setTableStyle(id).run();
   };
 

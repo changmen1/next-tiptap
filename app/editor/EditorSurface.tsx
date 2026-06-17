@@ -4,32 +4,34 @@ import { getEffectiveMarginMm, getPageDims, useEditorStore } from '../store';
 
 interface Props {
   editor: Editor | null;
-  // 让 EditorSurface 暴露滚动容器
+  // 让 EditorSurface 把真实滚动容器暴露给外层目录组件。
+  // 目录跳转不能滚动 window，因为正文滚动发生在 .workspace 内。
   onScrollParent?: (el: HTMLElement | null) => void;
 }
 
-/** mm → px at the browser's nominal 96dpi. */
+/** 毫米转 CSS 像素：浏览器名义上按 96dpi 换算，1in = 25.4mm。 */
 const mmToPx = (mm: number) => (mm * 96) / 25.4;
-// Fixed-height page zones (mm). The header band height matches the
-// letterhead image's natural rendered height (measured on load); the
-// meta + footer bands stay fixed.
+// 固定页面区域。信头/页脚图片的真实渲染高度会在图片加载后根据宽高比修正；
+// fallback 值用于图片还没加载时先给正文预留一个安全空间，避免首屏重叠。
 const HEADER_ZONE_FALLBACK_MM = 28; // used before the letterhead image loads
-const HEADER_META_TOP_MM = 6;    // gap between letterhead and SEPL meta band
-const HEADER_META_HEIGHT_MM = 8; // yellow SEPL band height
-const CONTENT_AFTER_META_MM = HEADER_META_TOP_MM + HEADER_META_HEIGHT_MM; // 12mm reserve under letterhead
 const FOOTER_ZONE_FALLBACK_MM = 13; // image (7mm) + bottom margin (4mm) + breathing (2mm)
 const CONTENT_LEFT_MM = 20;
 const CONTENT_RIGHT_MM = 15;
+const PAGE_GAP_PX = 24; // 页面之间的视觉间距，需要和 CSS / PDF 导出保持一致。
 
 /**
- * Editable surface. When pagination is on, content height is measured
- * with a ResizeObserver and N A4-shaped page backgrounds are stacked
- * behind the editable area so the document visually divides into pages.
+ * 可编辑纸张画布。
+ *
+ * 分页开启时，它会在正文后方堆叠 N 张 page-bg 作为纸张背景；
+ * ProseMirror 正文仍然是一条连续文档流，只是 Pagination 插件会插入 spacer，
+ * 让正文在视觉上落入每一页的可写区域。
  */
 export default function EditorSurface({ editor, onScrollParent }: Props) {
+  // 这些设置来自全局 store，改变它们会立即反映到 CSS 变量和分页指标中。
   const { docId, pageSize, orientation, margins, marginMm, zoom, paginated } = useEditorStore();
   const dims = getPageDims(pageSize, orientation);
   const m = getEffectiveMarginMm(margins, marginMm);
+  // 演示用参考号：用本地 docId 派生。生产系统通常会替换为论文编号/项目编号。
   const referenceNo = `SEPL-${docId.replace(/^doc_/, '').toUpperCase()}`;
   const displayDate = new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
@@ -43,9 +45,8 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
   const [letterheadSafePx, setLetterheadSafePx] = useState(mmToPx(HEADER_ZONE_FALLBACK_MM));
   const [footerSafePx, setFooterSafePx] = useState(mmToPx(FOOTER_ZONE_FALLBACK_MM));
   const workspaceRef = useRef<HTMLDivElement>(null);
-  // Top reserve is the letterhead clearance only; the SEPL meta band's
-  // extra 14mm is added as padding-top on the editor's first child so it
-  // only consumes space on page 1, not on every page.
+  // 顶部保留区只包含信头高度；黄色 SEPL 信息条的额外占位由 editor.css 给第一页首个正文节点加 padding。
+  // 这样信息条只占第一页空间，而不会让每一页正文都额外下移。
   const topReservePx = letterheadSafePx;
   const bottomReservePx = footerSafePx;
   const contentPerPagePx = Math.max(1, mmToPx(dims.h) - topReservePx - bottomReservePx);
@@ -53,11 +54,12 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
   useEffect(() => {
     onScrollParent?.(workspaceRef.current);
     if (workspaceRef.current && editor) {
+      // 通过自定义 Tiptap command 把滚动容器传给 TableOfContents 扩展。
       editor.commands.bindOutlineScrollParent(workspaceRef.current);
     }
   }, [editor, onScrollParent]);
 
-  // CSS vars for paper sizing + zoom
+  // 将纸张尺寸、页边距、缩放写成 CSS 变量，样式层只读变量，不必重复计算。
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -67,17 +69,17 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
     el.style.setProperty('--zoom', String(zoom));
   }, [dims.w, dims.h, m, zoom]);
 
-  // Feed pagination metrics to the Pagination ProseMirror plugin via data
-  // attributes on the ProseMirror DOM. The plugin watches these attrs with
-  // a MutationObserver and recomputes spacers whenever they change.
+  // 把分页插件需要的尺寸指标写到 ProseMirror DOM 的 data-* 属性上。
+  // 插件内部用 MutationObserver 监听这些属性，页面大小/边距变化时会重新计算 spacer。
   useEffect(() => {
     if (!editor) return;
     const pm = editor.view.dom as HTMLElement;
     if (paginated) {
+      // eslint-disable-next-line react-hooks/immutability -- 这里同步的是外部 ProseMirror DOM dataset，不是修改 React props。
       pm.dataset.pageHPx = String(mmToPx(dims.h));
       pm.dataset.marginPx = String(mmToPx(m));
       pm.dataset.pageContentPx = String(contentPerPagePx);
-      pm.dataset.gapPx = String(pageGapPx);
+      pm.dataset.gapPx = String(PAGE_GAP_PX);
     } else {
       delete pm.dataset.pageHPx;
       delete pm.dataset.marginPx;
@@ -86,10 +88,10 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
     }
   }, [editor, paginated, dims.h, m, contentPerPagePx]);
 
-  // Recompute page count from editor content height.
+  // 根据 ProseMirror DOM 高度重新计算页数，用 ResizeObserver 监听正文高度变化。
   useLayoutEffect(() => {
     if (!paginated || !editor) {
-      setPageCount(1);
+      queueMicrotask(() => setPageCount(1));
       return;
     }
     const wrap = contentWrapRef.current;
@@ -99,10 +101,9 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
 
     const recalc = () => {
       const h = pm.scrollHeight;
-      // Pagination spacers fill the dead zone between content areas, so the
-      // editor's scrollHeight equals (pages-1)*stride + tail, where stride is
-      // pageH + visual-gap. Use that directly to count pages.
-      const stride = mmToPx(dims.h) + pageGapPx;
+      // Pagination spacer 会填充“页脚 + 页间距 + 下一页信头”的不可写区域；
+      // 因此连续正文流的页间步长是 pageH + gap，而不是单纯的内容区高度。
+      const stride = mmToPx(dims.h) + PAGE_GAP_PX;
       const pages = stride > 0
         ? Math.max(1, Math.floor((h - 2) / stride) + 1)
         : Math.max(1, Math.ceil((h - 2) / contentPerPagePx));
@@ -113,18 +114,11 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
     const ro = new ResizeObserver(recalc);
     ro.observe(pm);
     return () => ro.disconnect();
-  }, [paginated, editor, contentPerPagePx]);
-
-  const pageGapPx = 24; // gap between page tiles (matches CSS)
+  }, [paginated, editor, contentPerPagePx, dims.h]);
 
   const handleLetterheadLoad = (img: HTMLImageElement) => {
-    // Compute rendered height from the image's intrinsic aspect ratio times
-    // the *logical* page width (mm -> px). This is independent of any ancestor
-    // transform (.paper-canvas zoom) and immune to layout-not-ready timing
-    // when the image is served from cache. Avoids using offsetHeight /
-    // getBoundingClientRect which gave the wrong value at zoom != 100% or
-    // before first paint and caused the SEPL meta band to overlap the
-    // phone/email block of the letterhead image.
+    // 不能用 offsetHeight/getBoundingClientRect 读信头高度，因为画布可能被 zoom transform 缩放；
+    // 这里用图片天然宽高比 * 页面逻辑宽度算出未缩放 CSS 高度，结果更稳定。
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     if (!nw || !nh) return;
@@ -133,9 +127,7 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
   };
 
   const handleFooterLoad = (img: HTMLImageElement) => {
-    // Footer renders edge-to-edge at natural aspect ratio. Compute the
-    // rendered height from intrinsic dimensions so we know how much
-    // bottom space to reserve for content above it.
+    // 页脚同样按页面宽度等比渲染；计算它的逻辑高度后给正文底部预留空间。
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     if (!nw || !nh) return;
@@ -151,13 +143,13 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
           data-pages={pageCount}
           style={{ width: `${dims.w}mm`, ['--letterhead-safe-px' as string]: `${letterheadSafePx}px` }}
         >
-          {/* Background tiles: one A4-sized "page" per page count */}
+          {/* 页面背景层：每一页一张固定高度纸张，包含信头、页脚和页码。 */}
           {paginated &&
             Array.from({ length: pageCount }, (_, i) => (
               <div
                 key={i}
                 className="page-bg"
-                style={{ height: `${dims.h}mm`, marginBottom: i === pageCount - 1 ? 0 : `${pageGapPx}px` }}
+                style={{ height: `${dims.h}mm`, marginBottom: i === pageCount - 1 ? 0 : `${PAGE_GAP_PX}px` }}
                 aria-hidden="true"
               >
                 <img
@@ -182,7 +174,7 @@ export default function EditorSurface({ editor, onScrollParent }: Props) {
               </div>
             ))}
 
-          {/* Editable content overlays the entire stack */}
+          {/* 编辑层：一条连续 ProseMirror 文档流覆盖在页面背景层上方。 */}
           <div
             ref={contentWrapRef}
             className="paper-content-wrap"

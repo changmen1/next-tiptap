@@ -8,6 +8,8 @@ interface Props {
     onAction: (action: string) => void;
 }
 
+// 文件菜单项的 id 会被传回 page.tsx 的 handleAction，由页面层统一分发。
+// 这样菜单本身不需要知道“保存/导入/导出”具体怎么做。
 const ITEMS: { id: string; label: string; icon: string; group?: 'top' | 'bottom' }[] = [
     { id: 'new', label: 'New', icon: '📄' },
     { id: 'open', label: 'Open…', icon: '📂' },
@@ -26,6 +28,7 @@ const FileMenu: FC<Props> = ({ open, onClose, onAction }) => {
 
     useEffect(() => {
         if (!open) return;
+        // 打开菜单后监听文档点击和 Escape，模拟原生菜单的关闭行为。
         const onDoc = (e: MouseEvent) => {
             if (ref.current && !ref.current.contains(e.target as Node)) onClose();
         };

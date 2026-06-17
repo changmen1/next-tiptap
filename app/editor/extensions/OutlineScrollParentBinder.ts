@@ -1,8 +1,10 @@
-// 滚动容器绑定扩展
-// 让 TableOfContents 知道编辑器真正的滚动容器是谁。
-// 当前滚动容器是 /src/editor/EditorSurface.tsx) 里的 .workspace
+// 滚动容器绑定扩展。
+// TableOfContents 默认倾向于使用 window 作为滚动上下文，但本编辑器真正滚动的是
+// EditorSurface.tsx 里的 .workspace。这个模块用一个轻量全局变量保存当前滚动容器。
 import { Extension } from "@tiptap/react";
 
+// 同一页面只会有一个编辑器实例，因此这里用模块级变量足够简单。
+// 如果未来支持多编辑器并存，需要改为按 editor 实例隔离。
 let boundScrollParent: HTMLElement | null = null;
 
 export function getBoundOutlineScrollParent(): HTMLElement | null {
@@ -26,6 +28,7 @@ export const OutlineScrollParentBinder = Extension.create({
 
     addCommands() {
         return {
+            // 命令返回 true 表示事务可执行；这里只做运行时绑定，不修改文档内容。
             bindOutlineScrollParent: (element: HTMLElement) => () => {
                 setBoundOutlineScrollParent(element);
                 return true;

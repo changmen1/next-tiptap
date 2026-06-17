@@ -23,6 +23,9 @@ import {
 } from './storage';
 import { useEditorStore } from './store';
 
+// 编辑器第一次打开、且没有从 localStorage 找到历史文档时使用的默认 HTML。
+// Tiptap 的 `content` 可以直接吃 HTML 字符串；这里保留一份富文本示例，
+// 方便开发/验收时快速检查标题、强调、列表等基础节点是否正常渲染。
 const DEFAULT_CONTENT = `
 <h1>Welcome to WordEditor</h1>
 <p>This is a <strong>production-grade</strong>, Microsoft Word-like editor built with <em>React</em>,
@@ -39,6 +42,9 @@ as <strong>.docx</strong>, <strong>HTML</strong>, <strong>TXT</strong>, or <stro
 `;
 
 export default function Home() {
+  // Zustand 全局状态保存的是“文档级 UI 状态”：标题、纸张、边距、主题等。
+  // 真正的正文内容不放进 Zustand，而是由 Tiptap editor 内部状态管理，
+  // 只有保存/导出/导入时才通过 editor.getHTML()/setContent() 和外部系统交换。
   const {
     docId,
     title,
@@ -55,7 +61,11 @@ export default function Home() {
     theme,
     showFormattingMarks
   } = useEditorStore();
+  // 扩展列表只需要创建一次；如果每次渲染都重新创建 extension 实例，
+  // Tiptap 可能重建插件状态，导致光标、分页 Decoration 或目录状态抖动。
   const extensions = useMemo(() => buildExtensions(), []);
+  // dirtyRef 用 ref 而不是 state，是因为“是否有未保存修改”不需要触发 React 重渲染；
+  // 它只服务于自动保存、离开页面提醒和显式保存按钮。
   const dirtyRef = useRef(false);
   const [findOpen, setFindOpen] = useState(false);
   const [wcOpen, setWcOpen] = useState(false);
@@ -65,16 +75,19 @@ export default function Home() {
   const [editorScrollParent, setEditorScrollParent] = useState<HTMLElement | null>(null);
   const getEditorScrollParent = useCallback(() => editorScrollParent, [editorScrollParent]);
 
-  // Apply theme
+  // 将主题写到 <html data-theme="...">，CSS 可以通过 `[data-theme="dark"]`
+  // 切换变量，而不用让每个组件单独关心主题。
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
 
-  // Toggle formatting-marks class on the document for editor CSS hooks.
+  // 显示/隐藏格式标记（例如段落符号）也是全局 CSS 钩子；
+  // 这里统一挂到 documentElement，避免给 ProseMirror 节点重复传 class。
   useEffect(() => {
     document.documentElement.classList.toggle('show-marks', showFormattingMarks);
   }, [showFormattingMarks]);
 
+  // 创建 Tiptap editor 实例。onUpdate 只标记“变脏”，真正保存由 doSave/自动保存完成。
   const editor = useEditor({
     extensions,
     content: DEFAULT_CONTENT,
@@ -85,14 +98,15 @@ export default function Home() {
     }
   });
 
-  // Load last doc on mount
+  // 首次拿到 editor 后，尝试恢复上次打开的文档。
+  // 注意：这里依赖 localStorage，只能在 `"use client"` 页面中执行。
   useEffect(() => {
     if (!editor) return;
     const lastId = getLastDocId();
     if (lastId) {
       const d = loadDoc(lastId);
       if (d) {
-        editor.commands.setContent(d.content || '', false as any);
+        editor.commands.setContent(d.content || '', { emitUpdate: false });
         loadDocAction(d.id, d.title);
         if (d.pageSize) setPageSize(d.pageSize as never);
         if (d.orientation) setOrientation(d.orientation as never);
@@ -104,6 +118,9 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor]);
 
+  // 将当前编辑器正文和页面设置持久化到 localStorage。
+  // 迁移到生产系统时，这个函数通常会替换成后端 API 调用；
+  // 保留同样的数据边界（id/title/content/pageSize/orientation/margins）会比较容易对接。
   const doSave = () => {
     if (!editor) return;
     const now = Date.now();
@@ -123,7 +140,8 @@ export default function Home() {
     setDocs(listDocs());
   };
 
-  // Autosave (debounced)
+  // 简单的间隔式自动保存：每 3 秒检查一次 dirtyRef。
+  // 它不是严格 debounce，但对本地存储足够；接后端时可以换成真正的 debounce/throttle。
   useEffect(() => {
     const t = setInterval(() => {
       if (dirtyRef.current) {
@@ -134,7 +152,8 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, docId, title, pageSize, orientation, margins]);
 
-  // Warn on unload if dirty
+  // 浏览器关闭/刷新前，如果有未保存内容，就触发原生确认提示。
+  // 现代浏览器不会展示自定义文案，设置 returnValue 只是为了启用提示。
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
       if (dirtyRef.current) {
@@ -150,15 +169,19 @@ export default function Home() {
     if (!editor) return;
     switch (action) {
       case 'new':
+        // 新建文档会清空正文并生成新的 docId；如果当前内容未保存，先让用户确认。
         if (dirtyRef.current && !confirm('Discard unsaved changes?')) return;
-        editor.commands.setContent('<p></p>', false as any);
+        editor.commands.setContent('<p></p>', { emitUpdate: false });
         newDoc();
         dirtyRef.current = false;
         break;
       case 'open':
+        // 打开文档管理弹窗，具体加载逻辑在 DocsManager 的 onLoad 回调中执行。
         setDocsOpen(true);
         break;
       case 'import': {
+        // 用临时 input 触发系统文件选择器。导入逻辑集中在 io.ts，
+        // 这里仅负责选择文件和把导入后的文件名同步为文档标题。
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = '.docx,.html,.htm,.md,.markdown,.txt';
@@ -174,6 +197,7 @@ export default function Home() {
       }
       case 'save':
       case 'saveAs':
+        // saveAs 通过生成新 docId + 新标题来创建副本；保存动作仍复用 doSave。
         if (action === 'saveAs') {
           const t = prompt('Title for new copy', title + ' (copy)');
           if (!t) return;
@@ -183,14 +207,16 @@ export default function Home() {
         } else doSave();
         break;
       case 'delete':
+        // 删除当前本地文档后，同时把编辑器切回一个空白新文档。
         if (confirm(`Delete "${title}"? This cannot be undone.`)) {
           deleteDoc(docId);
           newDoc();
-          editor.commands.setContent('<p></p>', false as any);
+          editor.commands.setContent('<p></p>', { emitUpdate: false });
           setDocs(listDocs());
         }
         break;
       case 'exportDocx':
+        // 导出 .docx 需要异步读取图片/生成 Word 文档，所以要 await。
         await exportDocx(editor, title);
         break;
       case 'exportHtml':
@@ -260,9 +286,10 @@ export default function Home() {
         docs={docs}
         onNew={() => handleAction('new')}
         onLoad={(id) => {
+          // 从文档管理器加载某个本地文档：正文交给 Tiptap，页面设置交给 Zustand。
           const d = loadDoc(id);
           if (!d || !editor) return;
-          editor.commands.setContent(d.content || '', false as any);
+          editor.commands.setContent(d.content || '', { emitUpdate: false });
           loadDocAction(d.id, d.title);
           setPageSize(d.pageSize as never);
           setOrientation(d.orientation as never);
@@ -272,6 +299,8 @@ export default function Home() {
           dirtyRef.current = false;
         }}
         onDelete={(id) => {
+          // 弹窗中的删除只刷新列表；如果删除的是当前文档，当前编辑器内容不会自动清空。
+          // 这样可以避免误删后立即丢失屏幕上的内容。
           deleteDoc(id);
           setDocs(listDocs());
         }}

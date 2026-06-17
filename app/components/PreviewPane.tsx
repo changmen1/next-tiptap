@@ -1,7 +1,7 @@
 import { Editor, useEditorState } from '@tiptap/react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { downloadPdf } from '../io';
-import { getEffectiveMarginMm, getPageDims, useEditorStore } from '../store';
+import { getPageDims, useEditorStore } from '../store';
 
 interface Props {
   editor: Editor | null;
@@ -9,7 +9,7 @@ interface Props {
 
 const mmToPx = (mm: number) => (mm * 96) / 25.4;
 const PAGE_GAP_PX = 24;
-// Must match EditorSurface so the preview paginates identically.
+// 这些值必须和 EditorSurface 保持一致，否则编辑区和预览区的分页/安全区会错位。
 const HEADER_ZONE_FALLBACK_MM = 28;
 const HEADER_META_TOP_MM = 6;
 const HEADER_META_HEIGHT_MM = 8;
@@ -19,17 +19,15 @@ const CONTENT_LEFT_MM = 20;
 const CONTENT_RIGHT_MM = 15;
 
 /**
- * Live preview pane. Mirrors the editor's *rendered* DOM (including any
- * pagination spacer widgets injected by the Pagination plugin) so the
- * preview shows the same page breaks the user sees in the editor. The
- * preview lays out N page-bg tiles behind a single content overlay,
- * matching the editor's structure, and alternates letterheads (page 1 uses
- * letterhead.png, pages 2+ use letterhead2.png).
+ * 实时预览面板。
+ *
+ * 它镜像编辑器已经渲染出来的 DOM，而不是只用 editor.getHTML()。
+ * 原因是 Pagination 插件插入的 spacer 只存在于 live DOM 中；
+ * 如果预览丢掉这些 spacer，用户看到的分页和导出的分页就会不一致。
  */
 export default function PreviewPane({ editor }: Props) {
-  const { docId, title, pageSize, orientation, margins, marginMm, paginated, previewZoom, previewZoomIn, previewZoomOut, previewZoomReset } = useEditorStore();
+  const { docId, title, pageSize, orientation, paginated, previewZoom, previewZoomIn, previewZoomOut, previewZoomReset } = useEditorStore();
   const dims = getPageDims(pageSize, orientation);
-  const m = getEffectiveMarginMm(margins, marginMm);
   const referenceNo = `SEPL-${docId.replace(/^doc_/, '').toUpperCase()}`;
   const displayDate = new Intl.DateTimeFormat('en-GB', {
     day: '2-digit',
@@ -37,9 +35,8 @@ export default function PreviewPane({ editor }: Props) {
     year: 'numeric'
   }).format(new Date());
 
-  // Pull the rendered ProseMirror DOM (includes spacer widgets) so the
-  // preview mirrors the editor exactly. Falls back to getHTML if view
-  // isn't mounted yet.
+  // useEditorState 会在编辑器事务变化时刷新 selector 返回值。
+  // 优先读取 view.dom.innerHTML，兜底才用 getHTML。
   const html = useEditorState({
     editor,
     selector: (ctx) => {
@@ -53,17 +50,13 @@ export default function PreviewPane({ editor }: Props) {
   const [pageCount, setPageCount] = useState(1);
   const [letterheadSafePx, setLetterheadSafePx] = useState(mmToPx(HEADER_ZONE_FALLBACK_MM));
   const [footerSafePx, setFooterSafePx] = useState(mmToPx(FOOTER_ZONE_FALLBACK_MM));
-  // Top reserve in paginated mode covers letterhead clearance only; the
-  // 14mm SEPL meta band reservation moves into the editor flow as a
-  // first-child padding so only page 1 has it.
+  // 分页模式下顶部安全区只包含信头；SEPL 信息条的首段 padding 已经在正文流里体现。
   const topReservePx = letterheadSafePx;
   const bottomReservePx = footerSafePx;
   const contentPerPagePx = Math.max(1, mmToPx(dims.h) - topReservePx - bottomReservePx);
 
   const handleLetterheadLoad = (img: HTMLImageElement) => {
-    // See EditorSurface for rationale: derive height from intrinsic ratio *
-    // logical page width so we're not affected by the preview-stack scale
-    // transform or by cached-image load timing.
+    // 和 EditorSurface 一样，使用图片天然宽高比计算逻辑高度，避免被 previewZoom 缩放影响。
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     if (!nw || !nh) return;
@@ -72,7 +65,7 @@ export default function PreviewPane({ editor }: Props) {
   };
 
   const handleFooterLoad = (img: HTMLImageElement) => {
-    // Mirror EditorSurface: footer renders edge-to-edge at natural aspect.
+    // 页脚按页面宽度等比渲染，计算高度后给正文预留底部安全区。
     const nw = img.naturalWidth;
     const nh = img.naturalHeight;
     if (!nw || !nh) return;
@@ -80,10 +73,10 @@ export default function PreviewPane({ editor }: Props) {
     if (cssH > 0) setFooterSafePx((prev) => (Math.abs(prev - cssH) > 0.5 ? cssH : prev));
   };
 
-  // Recompute preview page count from the rendered content height.
+  // 根据预览内容高度重新计算页数；预览与编辑器使用同样 pageStride 公式。
   useLayoutEffect(() => {
     if (!paginated) {
-      setPageCount(1);
+      queueMicrotask(() => setPageCount(1));
       return;
     }
     const el = contentRef.current;
@@ -101,7 +94,7 @@ export default function PreviewPane({ editor }: Props) {
     const ro = new ResizeObserver(recalc);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [paginated, contentPerPagePx, html]);
+  }, [paginated, contentPerPagePx, html, dims.h]);
 
   return (
     <div className="preview-pane" aria-label="Preview">

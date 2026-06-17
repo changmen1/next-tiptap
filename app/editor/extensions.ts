@@ -46,6 +46,7 @@ import TableRow from '@tiptap/extension-table-row';
 
 import TableOfContents from '@tiptap/extension-table-of-contents';
 import UniqueID from '@tiptap/extension-unique-id';
+// 目录扩展需要知道编辑区滚动容器；这里通过自定义扩展在运行时绑定。
 import { OutlineScrollParentBinder, getBoundOutlineScrollParent } from './extensions/OutlineScrollParentBinder';
 
 import { ClipboardClean } from './extensions/ClipboardClean';
@@ -59,17 +60,22 @@ import { StyledTable, StyledTableCell, StyledTableHeader } from './extensions/Ta
 
 export function buildExtensions() {
   return [
+    // StarterKit 提供段落、标题、列表、粗斜体、代码块、引用等基础节点/标记。
+    // 这里显式配置标题层级，并给代码块/分割线加 class，方便 CSS 统一控制。
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4, 5, 6] },
       codeBlock: { HTMLAttributes: { class: 'code-block' } },
       horizontalRule: { HTMLAttributes: { class: 'hr' } }
     }),
+    // 给 heading 节点生成稳定 ID；目录、滚动定位和锚点跳转都依赖这个 ID。
     UniqueID.configure({ types: ['heading'] }),
+    // Tiptap 的目录扩展会扫描 heading，并在 editor.storage.tableOfContents 中维护目录项。
     TableOfContents.configure({
       anchorTypes: ['heading'],
       scrollParent: () => getBoundOutlineScrollParent() ?? window
     }),
     OutlineScrollParentBinder,
+    // 下面是文字级格式扩展：下划线、上下标、字体、字号、颜色、高亮等。
     Underline,
     Subscript,
     Superscript,
@@ -81,11 +87,13 @@ export function buildExtensions() {
     ParagraphIndent,
     Highlight.configure({ multicolor: true }),
     TextAlign.configure({ types: ['heading', 'paragraph'], alignments: ['left', 'center', 'right', 'justify'] }),
+    // Link 关闭 openOnClick，避免编辑时误点链接跳走；导出时仍保留 target/rel 属性。
     Link.configure({
       openOnClick: false,
       autolink: true,
       HTMLAttributes: { rel: 'noopener noreferrer nofollow', target: '_blank' }
     }),
+    // 图片允许 base64，便于本地上传图片直接嵌入文档 HTML。
     Image.configure({ inline: false, allowBase64: true, HTMLAttributes: { class: 'we-image' } }),
     Placeholder.configure({
       placeholder: ({ node }) => (node.type.name === 'heading' ? 'Heading' : 'Start typing your document…')
@@ -93,6 +101,7 @@ export function buildExtensions() {
     Typography,
     TaskList,
     TaskItem.configure({ nested: true }),
+    // 表格使用自定义 StyledTable 系列，主要是为了保留 Word/Excel 粘贴来的样式属性。
     StyledTable.configure({
       resizable: true,
       lastColumnResizable: true,
@@ -102,6 +111,7 @@ export function buildExtensions() {
     TableRow,
     StyledTableHeader,
     StyledTableCell,
+    // 自定义分页、剪贴板清理、表格全选按钮等插件放在最后，确保能看到前面扩展生成的 DOM。
     PageBreak,
     Pagination,
     ClipboardClean,

@@ -2,12 +2,15 @@ import { Editor } from '@tiptap/react';
 import { useEffect, useRef } from 'react';
 
 export interface CapturedFormat {
+  // marks 保存当前选区上的文字标记及其属性，例如颜色、字号、高亮。
   marks: Record<string, Record<string, unknown>>;
   textAlign: string | null;
   blockType: 'paragraph' | 'heading' | 'blockquote';
   headingLevel?: number;
 }
 
+// 格式刷只捕获这些常见 mark；如果后续扩展了评论、批注、公式等 mark，
+// 可以把对应 mark name 加到这里。
 const MARK_NAMES = [
   'bold',
   'italic',
@@ -20,7 +23,7 @@ const MARK_NAMES = [
   'code'
 ] as const;
 
-/** Capture marks + block info around the current selection. */
+/** 捕获当前选区附近的文字标记和块级格式。 */
 export function captureFormat(editor: Editor): CapturedFormat {
   const marks: Record<string, Record<string, unknown>> = {};
   for (const name of MARK_NAMES) {
@@ -31,6 +34,7 @@ export function captureFormat(editor: Editor): CapturedFormat {
   const align: string | null =
     (['left', 'center', 'right', 'justify'].find((a) => editor.isActive({ textAlign: a })) as string) || null;
 
+  // 块级格式只记录段落/标题/引用三类，避免格式刷误复制列表结构或表格结构。
   let blockType: CapturedFormat['blockType'] = 'paragraph';
   let headingLevel: number | undefined;
   if (editor.isActive('blockquote')) blockType = 'blockquote';
@@ -47,11 +51,11 @@ export function captureFormat(editor: Editor): CapturedFormat {
   return { marks, textAlign: align, blockType, headingLevel };
 }
 
-/** Apply a captured format to the current selection. */
+/** 将捕获到的格式应用到当前选区。 */
 export function applyFormat(editor: Editor, fmt: CapturedFormat) {
   let chain = editor.chain().focus();
 
-  // Drop existing marks first so we don't merge with the target.
+  // 先清空现有 mark，确保目标文本完全变成格式刷捕获的样式，而不是两边样式叠加。
   chain = chain.unsetAllMarks();
 
   for (const [name, attrs] of Object.entries(fmt.marks)) {
@@ -82,8 +86,10 @@ interface UseFormatPainterArgs {
 }
 
 /**
- * Hook that listens for the next selection in the editor while format painter
- * is active and applies the captured format to it. Honours sticky mode.
+ * 格式刷 Hook。
+ *
+ * active 时监听编辑器中的下一次 mouseup，如果用户选中了一段文本，
+ * 就把 captured 中保存的格式应用上去。sticky 模式下应用后不自动关闭。
  */
 export function useFormatPainter({ editor, active, sticky, captured, deactivate }: UseFormatPainterArgs) {
   const guardRef = useRef(false);
@@ -93,6 +99,7 @@ export function useFormatPainter({ editor, active, sticky, captured, deactivate 
     dom.classList.add('fp-cursor');
 
     const onMouseUp = () => {
+      // guardRef 防止 applyFormat 触发的选区/事务变化再次进入当前处理流程。
       if (guardRef.current) return;
       const fmt = captured.current;
       if (!fmt) return;

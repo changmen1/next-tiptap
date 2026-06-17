@@ -1,4 +1,4 @@
-// import { Extension } from '@tiptap/core';
+// 这个扩展只处理粘贴进入编辑器的 HTML，不改变用户手动输入的内容。
 import { Plugin } from '@tiptap/pm/state';
 import { Extension } from '@tiptap/react';
 
@@ -15,6 +15,7 @@ import { Extension } from '@tiptap/react';
  */
 
 function isWordHTML(html: string): boolean {
+  // Word 粘贴通常带有 mso-* 样式、MsoNormal class 或 Office 命名空间。
   const h = html.toLowerCase();
   return (
     h.includes('mso-') ||
@@ -25,6 +26,7 @@ function isWordHTML(html: string): boolean {
 }
 
 function isExcelHTML(html: string): boolean {
+  // Excel 粘贴常见特征是 xmlns:x、office:excel 命名空间或 xl123 这类 class。
   const h = html.toLowerCase();
   return (
     h.includes('xmlns:x=') ||
@@ -34,10 +36,13 @@ function isExcelHTML(html: string): boolean {
 }
 
 function isOfficeHTML(html: string): boolean {
+  // StartFragment 注释是 Office/Google Docs 粘贴片段常见标记。
   return isWordHTML(html) || isExcelHTML(html) || /<!--\s*StartFragment\s*-->/i.test(html);
 }
 
 function inlineStyleBlocks(root: HTMLElement) {
+  // Excel 经常把单元格样式放在 <style> 里，再通过 class 引用。
+  // Tiptap/ProseMirror 不会保留 <style> 节点，所以先把能匹配到的规则内联到元素 style。
   const blocks = Array.from(root.querySelectorAll('style'));
   for (const block of blocks) {
     const css = block.textContent || '';
@@ -50,6 +55,7 @@ function inlineStyleBlocks(root: HTMLElement) {
       if (selectorList.startsWith('@')) continue;
       const selectors = selectorList.split(',').map((s) => s.trim()).filter(Boolean);
       for (const sel of selectors) {
+        // 伪类/伪元素无法可靠内联到元素上，直接跳过。
         if (/::|:hover|:focus|:active/.test(sel)) continue;
         let matches: NodeListOf<Element>;
         try {
@@ -69,6 +75,7 @@ function inlineStyleBlocks(root: HTMLElement) {
 }
 
 function cleanStyleString(style: string): string {
+  // 删除 Office 私有样式和分页相关样式，避免污染编辑器布局。
   return style
     .split(';')
     .map((s) => s.trim())
@@ -83,9 +90,7 @@ function cleanStyleString(style: string): string {
     .join('; ');
 }
 
-/** Strip absolute widths and nowrap rules from a single style string so a
- *  pasted table/cell respects the editor's page width instead of forcing
- *  horizontal overflow. */
+/** 从单个 style 字符串中剔除绝对宽度和 nowrap，让粘贴表格跟随编辑器页面宽度自适应。 */
 function stripWidthAndNowrap(style: string): string {
   return style
     .split(';')
@@ -100,12 +105,14 @@ function stripWidthAndNowrap(style: string): string {
     .join('; ');
 }
 
-/** Word/Excel paste often supplies absolute widths via:
- *    - <table width="..."> / inline `width:` style
- *    - <colgroup><col width="..."> / span+width
- *    - cell <td width="..."> / inline width style / nowrap
- *  Any of these can push the table past the page edge. Drop them all so
- *  the table flows to the available page width with proportional columns. */
+/**
+ * Word/Excel 粘贴表格常通过多种方式写死宽度：
+ * - <table width="..."> 或 table style="width: ..."
+ * - <colgroup><col width="...">
+ * - <td width="...">、单元格 style width、nowrap
+ *
+ * 这些都会让表格超出论文页面宽度，所以统一移除，让表格按可用宽度重新流式布局。
+ */
 function fitTablesToPage(root: HTMLElement) {
   const tables = root.querySelectorAll<HTMLTableElement>('table');
   tables.forEach((tbl) => {
@@ -116,9 +123,8 @@ function fitTablesToPage(root: HTMLElement) {
       else tbl.removeAttribute('style');
     }
 
-    // Drop <colgroup>: ProseMirror manages column widths via TableMap, and a
-    // pasted colgroup with absolute pixel widths is the #1 cause of pasted
-    // tables blowing past the page edge.
+    // 删除 <colgroup>/<col>：ProseMirror 表格通过 TableMap 管列结构，
+    // 粘贴来的绝对像素列宽是表格超出页面的主要来源。
     tbl.querySelectorAll('colgroup, col').forEach((c) => c.parentNode?.removeChild(c));
 
     tbl.querySelectorAll<HTMLElement>('td, th').forEach((cell) => {
@@ -134,6 +140,7 @@ function fitTablesToPage(root: HTMLElement) {
 }
 
 function cleanOfficeHTML(html: string): string {
+  // 用临时容器解析 HTML，方便使用 DOM API 删除/重写属性。
   const temp = document.createElement('div');
   temp.innerHTML = html;
 
@@ -153,6 +160,7 @@ function cleanOfficeHTML(html: string): string {
         name === 'lang' ||
         name === 'xml:lang'
       ) {
+        // 删除 Office XML 命名空间和语言属性，它们对编辑器无用，还可能导致导出冗余。
         el.removeAttribute(name);
       }
     });
@@ -164,6 +172,7 @@ function cleanOfficeHTML(html: string): string {
     }
 
     if (el.hasAttribute('class')) {
+      // Mso* class 只对 Word 内部样式有意义，保留会污染编辑器 CSS 匹配。
       const kept = (el.getAttribute('class') || '')
         .split(/\s+/)
         .filter((c) => c && !/^Mso/i.test(c));
@@ -179,6 +188,7 @@ function cleanOfficeHTML(html: string): string {
       tag === 'V:VML' ||
       tag === 'X:NAME'
     ) {
+      // Office 专有标签本身不保留，但把其子节点提升出来，避免误删有用文本。
       while (el.firstChild) el.parentNode?.insertBefore(el.firstChild, el);
       el.parentNode?.removeChild(el);
     }
@@ -196,8 +206,7 @@ export const ClipboardClean = Extension.create({
         props: {
           transformPastedHTML: (html: string) => {
             if (isOfficeHTML(html)) return cleanOfficeHTML(html);
-            // Non-office paste: still strip absolute table widths so wide
-            // pasted tables fit the page width.
+            // 非 Office 来源只要包含表格，也移除绝对宽度，避免网页表格撑破页面。
             if (!/<table/i.test(html)) return html;
             const temp = document.createElement('div');
             temp.innerHTML = html;

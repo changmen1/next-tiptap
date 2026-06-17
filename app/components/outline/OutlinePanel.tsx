@@ -1,4 +1,5 @@
-// 大纲面板
+// 大纲面板：读取 Tiptap TableOfContents 扩展生成的 heading 列表，
+// 并负责点击跳转、滚动同步当前标题、高亮活动项。
 import { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import { Editor } from '@tiptap/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export interface OutlineItem {
+  // TableOfContents/UniqueID 生成的标题 ID。
   id: string;
   textContent: string;
   level: number;
@@ -19,6 +21,7 @@ export interface OutlineItem {
   isActive: boolean;
   pos: number;
   dom?: HTMLElement;
+  // 原始 ProseMirror heading 节点，当前 UI 主要不用，但保留方便后续扩展。
   node?: ProseMirrorNode;
 }
 
@@ -29,6 +32,7 @@ interface TableOfContentsStorage {
 }
 
 function clampHeadingLevel(level: number): number {
+  // 防御异常数据：标题层级始终限制在 h1-h6。
   return Math.min(6, Math.max(1, Math.round(level) || 1));
 }
 
@@ -37,6 +41,7 @@ function headingLevelClass(originalLevel: number): string {
 }
 
 function resolveHeadingIdAtSelection(editor: Editor): string | null {
+  // 从当前选区向上找最近的 heading，优先使用 data-toc-id，兜底使用 id。
   const { $from } = editor.state.selection;
 
   for (let depth = $from.depth; depth > 0; depth -= 1) {
@@ -54,6 +59,7 @@ function resolveHeadingIdAtSelection(editor: Editor): string | null {
 }
 
 function resolveActiveIdByScroll(scrollParent: HTMLElement, source: OutlineItem[]): string | null {
+  // 根据滚动位置推断当前“已经越过顶部偏移线”的最后一个标题。
   const containerRect = scrollParent.getBoundingClientRect();
   const offset = getOutlineScrollOffset(scrollParent);
   let activeId: string | null = null;
@@ -80,6 +86,7 @@ function applyActiveState(source: OutlineItem[], activeId: string | null): Outli
 }
 
 function debounce<T extends (...args: never[]) => void>(fn: T, wait: number): T {
+  // 滚动事件非常频繁，轻量 debounce 可以减少目录列表 setState 次数。
   let timeout: ReturnType<typeof setTimeout> | null = null;
 
   return ((...args: Parameters<T>) => {
@@ -99,6 +106,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
       return;
     }
 
+    // TableOfContents 扩展把目录项放在 editor.storage.tableOfContents.content。
     const storage = editor.storage as TableOfContentsStorage;
     let nextItems = (storage.tableOfContents?.content ?? []).map((item) => ({
       ...item,
@@ -107,6 +115,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
 
     const parent = scrollParent();
     if (parent) {
+      // 滚动位置和光标位置都可能影响活动标题；先根据滚动推断。
       const scrollActiveId = resolveActiveIdByScroll(parent, nextItems);
       if (scrollActiveId) {
         nextItems = applyActiveState(nextItems, scrollActiveId);
@@ -115,6 +124,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
 
     const selectionActiveId = resolveHeadingIdAtSelection(editor);
     if (selectionActiveId) {
+      // 如果光标正处在某个标题内，光标优先级高于滚动推断。
       nextItems = applyActiveState(nextItems, selectionActiveId);
     }
 
@@ -126,10 +136,11 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
   useEffect(() => {
     if (!editor || editor.isDestroyed) return;
 
+    // 监听事务/更新/选区变化，覆盖标题文本变化、标题增删、光标移动等场景。
     editor.on('transaction', syncItems);
     editor.on('update', syncItems);
     editor.on('selectionUpdate', syncItems);
-    syncItems();
+    queueMicrotask(syncItems);
 
     return () => {
       if (editor.isDestroyed) return;
@@ -143,8 +154,9 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
     const parent = scrollParent();
     if (!parent) return;
 
+    // 滚动正文时同步目录高亮。
     parent.addEventListener('scroll', debouncedSyncItems, { passive: true });
-    syncItems();
+    queueMicrotask(syncItems);
 
     return () => {
       parent.removeEventListener('scroll', debouncedSyncItems);
@@ -154,6 +166,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
   useEffect(() => {
     if (!activeItemId || !listRef.current) return;
 
+    // 活动项变化时，让目录面板自身滚动到该项附近。
     const activeButton = listRef.current.querySelector<HTMLElement>(`[data-outline-id="${activeItemId}"]`);
     activeButton?.scrollIntoView({ block: 'nearest' });
   }, [activeItemId]);
@@ -161,6 +174,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
   const scrollToHeading = (item: OutlineItem) => {
     if (!editor || editor.isDestroyed) return;
 
+    // 先把编辑器选区移动到标题位置，再执行 DOM 滚动。
     editor
       .chain()
       .focus()

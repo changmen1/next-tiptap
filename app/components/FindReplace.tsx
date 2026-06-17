@@ -9,10 +9,13 @@ interface Props {
 }
 
 interface Match {
+  // ProseMirror 文档中的绝对位置范围，[from, to)。
   from: number;
   to: number;
 }
 
+// 在当前文档的文本节点中查找匹配项。
+// 注意：它不会跨多个文本节点匹配，因此跨格式边界的词可能不会被命中。
 function findMatches(editor: Editor, query: string, caseSensitive: boolean, wholeWord: boolean): Match[] {
   if (!query) return [];
   const results: Match[] = [];
@@ -24,6 +27,7 @@ function findMatches(editor: Editor, query: string, caseSensitive: boolean, whol
     if (!node.isText || !node.text) return;
     let m: RegExpExecArray | null;
     while ((m = re.exec(node.text)) !== null) {
+      // pos 是当前文本节点在文档中的起点，m.index 是该文本节点内偏移。
       const from = pos + m.index;
       results.push({ from, to: from + m[0].length });
       if (m.index === re.lastIndex) re.lastIndex++;
@@ -33,6 +37,7 @@ function findMatches(editor: Editor, query: string, caseSensitive: boolean, whol
 }
 
 export default function FindReplace({ editor, open, onClose }: Props) {
+  // q = 查找词，r = 替换文本，cs = 大小写敏感，ww = 整词匹配。
   const [q, setQ] = useState('');
   const [r, setR] = useState('');
   const [cs, setCs] = useState(false);
@@ -41,6 +46,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // 弹窗打开后稍等一帧再 focus，确保 input 已经挂载。
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
@@ -48,6 +54,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
 
   useEffect(() => {
     if (!editor || matches.length === 0) return;
+    // 当前匹配项同步成编辑器选区，并滚动到可见区域。
     const m = matches[Math.min(idx, matches.length - 1)];
     editor.commands.setTextSelection({ from: m.from, to: m.to });
     editor.commands.scrollIntoView();
@@ -64,7 +71,7 @@ export default function FindReplace({ editor, open, onClose }: Props) {
 
   const replaceAll = () => {
     if (!editor || matches.length === 0) return;
-    // Apply in reverse to preserve positions
+    // 从后往前替换，避免前面的替换改变后续匹配项的位置。
     const chain = editor.chain().focus();
     for (let i = matches.length - 1; i >= 0; i--) {
       const m = matches[i];

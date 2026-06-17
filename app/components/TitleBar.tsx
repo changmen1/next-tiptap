@@ -5,6 +5,7 @@ import { useEditorStore } from '../store';
 import FileMenu from "./FileMenu";
 
 interface Props {
+    // 顶栏只接收操作回调；保存、打印、打开文档等业务逻辑都在页面层实现。
     onSave: () => void;
     onPrint: () => void;
     onOpenDocs: () => void;
@@ -13,10 +14,12 @@ interface Props {
     onToggleOutline: () => void;
 }
 
+// 应用顶栏：左侧是文件菜单和保存状态，中间是快速操作，右侧是视图/主题按钮。
 const TitleBar: FC<Props> = ({ onSave, onPrint, onOpenDocs, onFileAction, outlineOpen, onToggleOutline }) => {
     const { saveStatus, toggleTheme } = useEditorStore();
     const [fileOpen, setFileOpen] = useState(false);
 
+    // saveStatus 来自全局 store，映射为用户可读的状态文案。
     const statusText: Record<typeof saveStatus, string> = {
         saved: 'All changes saved',
         saving: 'Saving…',

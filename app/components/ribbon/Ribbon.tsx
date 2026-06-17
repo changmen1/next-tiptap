@@ -14,6 +14,7 @@ interface Props {
 const SIZES = ['8', '9', '10', '11', '12', '14', '16', '18', '20', '24', '28', '32', '36', '48', '72'];
 const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'];
 const FIRST_LINE_INDENTS = [
+  // 中文论文常见首行缩进为 2em，这里也保留 1/3 字符作为可选项。
   { label: 'None', value: null },
   { label: 'First line 1 char', value: '1em' },
   { label: 'First line 2 chars', value: '2em' },
@@ -21,6 +22,7 @@ const FIRST_LINE_INDENTS = [
 ] as const;
 
 const FONT_FAMILIES: { label: string; value: string }[] = [
+  // 字体值按 CSS font-family 写法保存，导出 HTML 时可直接复用。
   { label: 'Aptos (Body)', value: 'Aptos, Calibri, Segoe UI, sans-serif' },
   { label: 'Calibri', value: 'Calibri, sans-serif' },
   { label: 'Arial', value: 'Arial, Helvetica, sans-serif' },
@@ -37,7 +39,7 @@ const FONT_FAMILIES: { label: string; value: string }[] = [
   { label: 'Comic Sans MS', value: '"Comic Sans MS", cursive' }
 ];
 
-/** A compact Word-like theme palette. */
+/** 简化版 Word 主题色板；按钮直接把颜色写入 textStyle/highlight/cell style。 */
 const COLOR_THEME = [
   '#000000', '#7F7F7F', '#A6A6A6', '#FFFFFF',
   '#C00000', '#FF0000', '#FFC000', '#FFFF00',
@@ -53,6 +55,7 @@ const HIGHLIGHT_COLORS = [
 ];
 
 const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Editor) => void }[] = [
+  // 样式库按钮本质上是一组 Tiptap command 组合，不是完整 Word 样式系统。
   {
     id: 'normal', label: 'Normal', preview: 'Normal',
     apply: (e) => e.chain().focus().setParagraph().unsetAllMarks().run()
@@ -84,6 +87,7 @@ const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Ed
 ];
 
 const CASE_ACTIONS: { id: string; label: string; transform: (s: string) => string }[] = [
+  // 只对选中文本做纯字符串转换，不保留复杂大小写语言规则。
   { id: 'sentence', label: 'Sentence case', transform: (s) => s.replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase()).replace(/(\w)([A-Z])/g, (_, a, b) => a + b.toLowerCase()) },
   { id: 'lower', label: 'lowercase', transform: (s) => s.toLowerCase() },
   { id: 'upper', label: 'UPPERCASE', transform: (s) => s.toUpperCase() },
@@ -92,6 +96,7 @@ const CASE_ACTIONS: { id: string; label: string; transform: (s: string) => strin
 ];
 
 const QUICK_STYLES: { id: string; label: string }[] = [
+  // 表格上下文页签里的快速样式，id 对应 StyledTable 的 tableStyle 属性。
   { id: '', label: 'No style' },
   { id: 'plain', label: 'Plain' },
   { id: 'grid', label: 'Grid' },
@@ -106,6 +111,7 @@ const QUICK_STYLES: { id: string; label: string }[] = [
 ];
 
 const CELL_ALIGNS: { id: string; label: string; v: 'top' | 'middle' | 'bottom'; h: 'left' | 'center' | 'right' }[] = [
+  // 单元格九宫格对齐：vertical-align 写到单元格，水平对齐用 Tiptap textAlign。
   { id: 'tl', label: 'Top Left', v: 'top', h: 'left' },
   { id: 'tc', label: 'Top Center', v: 'top', h: 'center' },
   { id: 'tr', label: 'Top Right', v: 'top', h: 'right' },
@@ -120,11 +126,14 @@ const CELL_ALIGNS: { id: string; label: string; v: 'top' | 'middle' | 'bottom'; 
 type TabId = 'home' | 'insert' | 'tdesign' | 'tlayout';
 
 export default function Ribbon({ editor, onAction }: Props) {
+  // editor 初始化前渲染空 nav，避免工具栏按钮在 editor 为 null 时误触发命令。
   if (!editor) return <nav className="ribbon" aria-label="Ribbon" />;
   return <RibbonInner editor={editor} onAction={onAction} />;
 }
 
 function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }) {
+  // useEditorState 只订阅工具栏真正需要的派生状态；
+  // 比在每次 React 渲染里直接读 editor.isActive 更稳定，也能减少无关重渲染。
   const state = useEditorState({
     editor,
     selector: (ctx) => {
@@ -160,12 +169,13 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     }
   });
 
+  // home/insert 是普通页签；tdesign/tlayout 是光标进入表格后才出现的上下文页签。
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const wasInTableRef = useRef(false);
   const lastNonTableTabRef = useRef<TabId>('home');
 
-  // Word behaviour: jumping into a table auto-switches to "Table Design";
-  // leaving the table restores the previous (non-contextual) tab.
+  // 模拟 Word：光标进入表格时自动切到 Table Design；
+  // 离开表格后恢复进入表格前的普通页签。
   useEffect(() => {
     if (state.inTable && !wasInTableRef.current) {
       if (activeTab !== 'tdesign' && activeTab !== 'tlayout') {
@@ -179,17 +189,15 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
   }, [state.inTable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const focus = () => editor.chain().focus();
+  // 首行缩进通过 ParagraphIndent 扩展写到 paragraph.firstLineIndent。
   const setFirstLineIndent = (value: string) =>
     focus().updateAttributes('paragraph', { firstLineIndent: value }).run();
   const unsetFirstLineIndent = () =>
     focus().resetAttributes('paragraph', 'firstLineIndent').run();
 
-  // ====== Delete current block ======
-  // Removes whatever node the cursor is anchored in: if a table, deletes the
-  // whole table; otherwise walks up the node depth and deletes the first
-  // non-paragraph block (covers cover-page wrappers, page-break HRs, text
-  // boxes, blockquotes, code blocks, images, etc.). If the cursor is in a
-  // plain paragraph, deletes that paragraph.
+  // ====== 删除当前块 ======
+  // 删除光标所在的结构：表格则删整表；否则向上找最近的非段落块
+  // （封面、分页符、文本框、引用、代码块、图片等）。普通段落则删除该段落。
   const deleteBlock = () => {
     if (!editor) return;
     if (editor.can().deleteTable()) {
@@ -198,12 +206,12 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     }
     const { state } = editor;
     const { $from, from, to } = state.selection;
-    // If a node-selection exists (e.g. clicked on an image), just delete it.
+    // 如果当前是 NodeSelection（例如选中图片），直接删除选区。
     if (from !== to && (state.selection as { node?: unknown }).node) {
       editor.chain().focus().deleteSelection().run();
       return;
     }
-    // Walk up looking for the nearest non-paragraph block.
+    // 向上寻找最近的非段落块，并用 tr.delete 删除它的完整范围。
     for (let d = $from.depth; d >= 0; d--) {
       const node = $from.node(d);
       if (!node || node.type.name === 'doc') break;
@@ -220,11 +228,12 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
         .run();
       return;
     }
-    // Fallback: collapse current paragraph.
+    // 兜底：选中父节点并删除，覆盖普通段落场景。
     editor.chain().focus().selectParentNode().deleteSelection().run();
   };
 
-  // Listen for the Ctrl+Shift+Delete shortcut from useShortcuts (App-level).
+  // 监听 Ctrl/Cmd+Shift+Delete 删除当前块。这个快捷键放在 Ribbon 内，
+  // 因为它依赖 deleteBlock 这组工具栏逻辑。
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Delete') {
@@ -237,7 +246,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     return () => window.removeEventListener('keydown', handler);
   }, [editor]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ====== Format painter ======
+  // ====== 格式刷 ======
   const captured = useRef<CapturedFormat | null>(null);
   const [painterActive, setPainterActive] = useState(false);
   const [painterSticky, setPainterSticky] = useState(false);
@@ -254,20 +263,23 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     deactivate: deactivatePainter
   });
   const startPainter = (sticky: boolean) => {
+    // 单击格式刷应用一次；双击进入 sticky 模式，可以连续刷多段。
     captured.current = captureFormat(editor);
     setPainterSticky(sticky);
     setPainterActive(true);
   };
 
-  // ====== Clipboard ======
+  // ====== 剪贴板 ======
   const doCopy = async () => {
     const { from, to } = editor.state.selection;
     if (from === to) return;
+    // serializeForClipboard 能同时给出 HTML DOM 和纯文本，保留富文本复制体验。
     const slice = editor.state.doc.slice(from, to);
     const serialized = editor.view.serializeForClipboard(slice);
     const html = serialized.dom.outerHTML || serialized.dom.innerHTML;
     const text = serialized.text;
     try {
+      // 优先写入 text/html + text/plain；浏览器权限不允许时再退回纯文本。
       await navigator.clipboard.write([
         new ClipboardItem({
           'text/html': new Blob([html], { type: 'text/html' }),
@@ -284,6 +296,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
   };
   const doPaste = async () => {
     try {
+      // 程序化读取剪贴板可能被浏览器权限阻止；失败时用户仍可 Ctrl+V。
       const items = await navigator.clipboard.read();
       for (const item of items) {
         if (item.types.includes('text/html')) {
@@ -306,14 +319,15 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     } catch { /* ignore */ }
   };
 
-  // ====== Font size grow / shrink ======
+  // ====== 字号增减 ======
   const adjustFontSize = (delta: number) => {
+    // 限制字号范围，避免误操作写入过小/过大的不可读字号。
     const cur = parseInt(state.fontSize || '11', 10) || 11;
     const next = Math.max(6, Math.min(96, cur + delta));
     focus().setFontSize(`${next}pt`).run();
   };
 
-  // ====== Change case ======
+  // ====== 更改大小写 ======
   const applyCase = (transform: (s: string) => string) => {
     const { from, to } = editor.state.selection;
     if (from === to) return;
@@ -322,7 +336,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     editor.chain().focus().insertContentAt({ from, to }, out).setTextSelection({ from, to: from + out.length }).run();
   };
 
-  // ====== Sort selected paragraphs alphabetically ======
+  // ====== 选中段落按字母排序 ======
   const sortParagraphs = () => {
     const { from, to } = editor.state.selection;
     if (from === to) return;
@@ -333,7 +347,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
     editor.chain().focus().insertContentAt({ from, to }, sorted).run();
   };
 
-  // ====== Clear all formatting (marks + block resets) ======
+  // ====== 清除格式：清 mark，同时把块级格式恢复到普通段落/左对齐/默认行高 ======
   const clearAll = () =>
     focus()
       .unsetAllMarks()
@@ -343,7 +357,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
       .resetAttributes('paragraph', 'firstLineIndent')
       .run();
 
-  // ====== Show/hide formatting marks ======
+  // ====== 显示/隐藏格式标记 ======
   const { showFormattingMarks, toggleFormattingMarks } = useEditorStore();
 
   const tabs: { id: TabId; label: string; contextual?: boolean }[] = [

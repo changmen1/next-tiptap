@@ -10,6 +10,7 @@ interface Props {
 }
 
 const SHAPES: { id: string; label: string; svg: string }[] = [
+  // 每个形状先保存为 SVG 片段，插入时再包成完整 SVG 并转成 data URI 图片。
   { id: 'rect', label: 'Rectangle', svg: '<rect x="5" y="15" width="110" height="50" fill="#dbe6f3" stroke="#2e74b5" stroke-width="2"/>' },
   { id: 'rounded', label: 'Rounded Rectangle', svg: '<rect x="5" y="15" width="110" height="50" rx="10" ry="10" fill="#dbe6f3" stroke="#2e74b5" stroke-width="2"/>' },
   { id: 'oval', label: 'Oval', svg: '<ellipse cx="60" cy="40" rx="55" ry="25" fill="#dbe6f3" stroke="#2e74b5" stroke-width="2"/>' },
@@ -25,6 +26,7 @@ const SHAPES: { id: string; label: string; svg: string }[] = [
 ];
 
 const ICONS = [
+  // 简单符号/emoji 图标直接作为文本插入，适合轻量装饰，不生成复杂节点。
   '★','☆','♥','♦','♣','♠','✓','✗','✦','✧',
   '☀','☁','☂','☃','❄','✿','✾','❀','☘','☮',
   '☎','✉','✎','✏','✂','⚙','⚡','⌚','⌛','⏰',
@@ -33,6 +35,7 @@ const ICONS = [
 ];
 
 const SYMBOLS = [
+  // 常用版权、数学、希腊字母、货币符号。
   '©','®','™','§','¶','†','‡','•','◦','‣',
   '°','′','″','‴','⌀','∅','∞','≈','≠','≤',
   '≥','±','×','÷','√','∑','∏','∫','∂','∇',
@@ -43,6 +46,7 @@ const SYMBOLS = [
 ];
 
 const PAGE_NUM_FORMATS: { id: string; label: string; render: (n: number, total: number) => string }[] = [
+  // 当前只是插入静态占位文本；如果需要真实页码域，可在导出/PDF 阶段再替换。
   { id: 'plain', label: 'Plain Number', render: (n) => String(n) },
   { id: 'page-n', label: 'Page N', render: (n) => `Page ${n}` },
   { id: 'n-of-m', label: 'Page N of M', render: (n, t) => `Page ${n} of ${t}` },
@@ -50,12 +54,15 @@ const PAGE_NUM_FORMATS: { id: string; label: string; render: (n: number, total: 
 ];
 
 export default function InsertTab({ editor, inTable }: Props) {
+  // 隐藏 input 只用于“本机图片”选择；按钮点击时通过 ref 触发系统文件选择器。
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 简化命令链写法，并保证执行命令前恢复编辑器焦点。
   const focus = () => editor.chain().focus();
 
-  // ===== Pages =====
+  // ===== 页面相关插入 =====
   const insertCoverPage = (variant: 'simple' | 'banded' | 'minimal') => {
+    // 封面页使用 HTML 片段插入，紧跟一个硬分页符和空段落，方便用户继续写正文。
     let html = '';
     if (variant === 'simple') {
       html = `
@@ -93,6 +100,7 @@ export default function InsertTab({ editor, inTable }: Props) {
   };
 
   const insertBlankPage = () => {
+    // 空白页本质上是“前后两个分页符 + 中间空段落”。
     editor
       .chain()
       .focus()
@@ -102,13 +110,14 @@ export default function InsertTab({ editor, inTable }: Props) {
       .run();
   };
 
-  // ===== Pictures =====
+  // ===== 图片 =====
   const onPickFile = () => fileInputRef.current?.click();
   const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
+      // 读成本地 data URL 后插入图片，文档 HTML 可以自包含这张图。
       const src = String(reader.result);
       editor.chain().focus().setImage({ src, alt: file.name }).run();
     };
@@ -116,20 +125,23 @@ export default function InsertTab({ editor, inTable }: Props) {
     e.target.value = '';
   };
   const insertOnlinePicture = () => {
+    // 在线图片只保存 URL；导出 docx/pdf 时可能受 CORS 或网络可用性影响。
     const url = window.prompt('Image URL:');
     if (!url) return;
     editor.chain().focus().setImage({ src: url, alt: '' }).run();
   };
 
-  // ===== Shapes =====
+  // ===== 形状 =====
   const insertShape = (svg: string) => {
+    // 形状作为图片插入，而不是作为可编辑 SVG 节点；这样与 Tiptap Image 扩展兼容。
     const full = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" width="120" height="80">${svg}</svg>`;
     const dataUri = `data:image/svg+xml;base64,${btoa(full)}`;
     editor.chain().focus().setImage({ src: dataUri, alt: 'shape' }).run();
   };
 
-  // ===== Links =====
+  // ===== 链接/书签 =====
   const insertLink = () => {
+    // 如果当前选区已经在链接内，默认值带出原 href，方便修改。
     const prev = editor.getAttributes('link').href as string | undefined;
     const url = window.prompt('Link URL:', prev || 'https://');
     if (url === null) return;
@@ -139,6 +151,7 @@ export default function InsertTab({ editor, inTable }: Props) {
     }
     const { from, to, empty } = editor.state.selection;
     if (empty) {
+      // 没有选中文本时，询问显示文本并插入完整 <a>。
       const text = window.prompt('Display text:', url) || url;
       editor
         .chain()
@@ -146,33 +159,39 @@ export default function InsertTab({ editor, inTable }: Props) {
         .insertContent(`<a href="${url}" target="_blank" rel="noopener">${text}</a>`)
         .run();
     } else {
+      // 有选区时，只给现有文本加 link mark。
       editor.chain().focus().extendMarkRange('link').setLink({ href: url, target: '_blank' }).setTextSelection({ from, to }).run();
     }
   };
   const insertBookmark = () => {
+    // 书签用空 a[id] 标记位置，后续可配合目录/引用功能扩展。
     const name = window.prompt('Bookmark name (no spaces):');
     if (!name) return;
     const safe = name.replace(/\s+/g, '_');
     editor.chain().focus().insertContent(`<a id="${safe}" class="bookmark" title="Bookmark: ${safe}"></a>`).run();
   };
 
-  // ===== Header / Footer =====
+  // ===== 页眉/页脚占位文本 =====
   const insertHeader = () => {
+    // 这里插入的是正文中的模拟页眉文本，不是 Word/PDF 的真实页眉区域。
     const text = window.prompt('Header text:', 'Document Header') || '';
     editor.chain().focus().setTextSelection(0).insertContent(`<p style="text-align:center;font-size:10pt;color:#7f7f7f;">${text}</p>`).run();
   };
   const insertFooter = () => {
+    // 插入到文档末尾，作为轻量占位；真正页脚由 EditorSurface/PDF 导出层绘制。
     const text = window.prompt('Footer text:', 'Document Footer') || '';
     const end = editor.state.doc.content.size;
     editor.chain().focus().setTextSelection(end).insertContent(`<p style="text-align:center;font-size:10pt;color:#7f7f7f;">${text}</p>`).run();
   };
   const insertPageNumber = (id: string) => {
+    // 插入页码占位 span，后续可在导出阶段按 data-format 替换真实页码。
     const f = PAGE_NUM_FORMATS.find((x) => x.id === id) || PAGE_NUM_FORMATS[0];
     editor.chain().focus().insertContent(`<span class="page-number-field" data-format="${id}">${f.render(1, 1)}</span>`).run();
   };
 
-  // ===== Text =====
+  // ===== 文本组件 =====
   const insertTextBox = () => {
+    // 用 blockquote 模拟文本框，方便沿用现有块级节点和 CSS。
     editor
       .chain()
       .focus()
@@ -182,6 +201,7 @@ export default function InsertTab({ editor, inTable }: Props) {
       .run();
   };
   const insertDropCap = () => {
+    // 找到当前段落/标题的首字符，将其替换成带 float 的大号 span。
     const { $from } = editor.state.selection;
     let pos: number | null = null;
     let firstChar = '';
@@ -218,9 +238,10 @@ export default function InsertTab({ editor, inTable }: Props) {
     editor.chain().focus().insertContent(s).run();
   };
 
-  // ===== Symbols / Equation =====
+  // ===== 符号 / 公式占位 =====
   const insertSymbol = (sym: string) => editor.chain().focus().insertContent(sym).run();
   const insertEquation = () => {
+    // 当前公式只是文本占位 + data-tex；如需真正公式渲染，可接 KaTeX/MathJax。
     const tex = window.prompt('Enter equation (LaTeX-style):', 'a^2 + b^2 = c^2');
     if (!tex) return;
     editor.chain().focus().insertContent(`<span class="equation" data-tex="${tex.replace(/"/g, '&quot;')}">${tex}</span>`).run();

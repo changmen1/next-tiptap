@@ -1,4 +1,5 @@
-/* ============ Workspace / Paper ============ */
+/* ============ 编辑工作区 / 纸张 ============
+   编辑区由滚动容器、缩放画布、页面背景层和 ProseMirror 正文层组成。 */
 .workspace {
   flex: 1 1 auto;
   overflow: auto;
@@ -23,7 +24,7 @@
   min-width: 0;
 }
 
-/* ============ Document outline ============ */
+/* ============ 文档大纲 ============ */
 .document-body__outline-rail {
   position: absolute;
   inset: 0;
@@ -159,7 +160,7 @@
   font-weight: 500;
 }
 
-/* ============ Split layout (Editor | Preview) ============ */
+/* ============ 分栏布局（编辑器 | 预览） ============ */
 .split-main {
   flex: 1 1 auto;
   display: flex;
@@ -181,7 +182,7 @@
   cursor: default;
 }
 
-/* ============ Preview pane ============ */
+/* ============ 预览面板 ============ */
 .preview-pane {
   display: flex;
   flex-direction: column;
@@ -239,7 +240,7 @@
   border-color: var(--border);
 }
 
-/* PDF download button in the preview header. */
+/* 预览标题栏中的 PDF 下载按钮。 */
 .preview-actions {
   display: inline-flex;
   align-items: center;
@@ -305,7 +306,7 @@
   position: sticky;
   top: 0;
   z-index: 5;
-  /* Self-centered like .paper-canvas so horizontal scroll keeps them aligned. */
+  /* 和 .paper-canvas 一样自居中，横向滚动时保持标尺与纸张对齐。 */
   align-self: center;
   padding: 4px 0 0;
   pointer-events: none;
@@ -419,13 +420,11 @@
   transition: transform 120ms ease-out;
 }
 
-/* === Multi-page stack ===
- * `.paper-stack` is positioned `relative` and contains:
- *   - N `.page-bg` siblings (one per page) that paint A4 backgrounds
- *   - one absolutely-positioned `.paper-content-wrap` overlaying them all
- * The editable content flows continuously through the stack; the gaps
- * between `.page-bg` tiles act as visible page boundaries.
- */
+/* === 多页堆叠 ===
+ * `.paper-stack` 是相对定位容器，里面包含：
+ *   - N 个 `.page-bg` 兄弟节点，每个节点绘制一页纸张背景；
+ *   - 一个绝对定位的 `.paper-content-wrap`，覆盖整叠页面。
+ * 正文仍是一条连续流，页面之间的可见间隔由 `.page-bg` 的间距表现。 */
 .paper-stack {
   position: relative;
   margin-bottom: 24px;
@@ -439,11 +438,9 @@
   position: relative;
 }
 
-/* Mask the visual gap between successive page tiles. The dead zone
- * between two pages (footer band of N + visual gap + letterhead of N+1)
- * must hide any cell border that the editable content might extend into
- * it during pagination, so this strip paints a distinctly darker shade
- * than the workspace bg so the page break is clearly visible. */
+/* 遮住相邻页面之间的视觉间距。
+ * 两页之间的死区包含上一页页脚、页面间距和下一页信头；
+ * 如果分页时表格边框延伸到这里，这条遮罩能把它盖住，并让分页边界更清楚。 */
 .page-bg:not(:last-child)::after {
   content: '';
   position: absolute;
@@ -472,12 +469,9 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   z-index: 7;
 }
 
-/* ============ Letterhead ============
- * Rendered as an absolutely-positioned image at the top of every page
- * (both editor page-bg tiles and the preview paper). Sits behind the
- * editable content so the user can type over/under it. The default top
- * margin should be large enough to clear it (~30mm).
- */
+/* ============ 信头 ============
+ * 信头作为绝对定位图片绘制在每一页顶部（编辑器和预览共用）。
+ * 它属于页面装饰层，不进入 ProseMirror 文档模型。 */
 .page-letterhead,
 .preview-paper>.page-letterhead {
   position: absolute;
@@ -514,9 +508,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   z-index: 6;
 }
 
-/* Footer image: anchored to the bottom edge, full width (edge-to-edge
- * with a 1px bleed each side to cover the page-edge anti-alias seam).
- * Height is auto so the image renders at its natural aspect ratio. */
+/* 页脚图片固定在页面底边，左右各多 1px 出血，用来遮住页面边缘的抗锯齿缝隙。 */
 .page-footer,
 .preview-paper>.page-footer {
   position: absolute;
@@ -533,37 +525,33 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
 }
 
 .paper-content-wrap {
-  /* When paginated, inline-styled to fill the stack. The chrome layers
-   * (letterhead/meta/footer/gap-mask) intentionally use higher z-index
-   * to mask any pagination overflow that lands in the dead zones. */
+  /* 分页时通过 inline style 填满整叠页面；信头/信息条/页脚/间距遮罩层级更高，
+   * 用于盖住落入不可写死区的分页溢出。 */
   position: relative;
   z-index: 1;
 }
 
-/* Pagination spacer (widget decoration injected by the Pagination plugin
- * before any block that would cross a page boundary — pushes the block
- * onto the next page). */
+/* 分页 spacer：Pagination 插件在跨页块之前注入的 widget，用来把块推到下一页。 */
 .pm-page-spacer {
   user-select: none;
   pointer-events: none;
 }
 
-/* Preview pane mirrors the editor's pagination layout. */
+/* 预览面板镜像编辑器分页布局。 */
 .preview-stack {
   position: relative;
   margin-bottom: 24px;
 }
 
 .preview-page-bg {
-  /* Inherit the 4-zone gradient + paper color from .page-bg; only add chrome. */
+  /* 继承 .page-bg 的纸张背景，只补充预览装饰。 */
   box-shadow: var(--shadow);
   border: 1px solid var(--paper-edge);
 }
 
 .preview-pane .workspace,
 .preview-pane .paper {
-  /* Preview always renders with multi-page tiles when paginated; the
-   * inner .paper has no background of its own. */
+  /* 分页预览使用多页背景纸张；内部 .paper 自身不绘制背景。 */
   background: transparent;
   box-shadow: none;
   border: 0;
@@ -571,7 +559,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   min-height: 100%;
 }
 
-/* Legacy single-paper styling (used when pagination is OFF). */
+/* 非分页模式下的单张纸样式。 */
 .workspace[data-paginated='0'] .paper-stack {
   width: auto !important;
 }
@@ -589,9 +577,8 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   border: 1px solid var(--paper-edge);
 }
 
-/* When paginated, the .paper element is just a transparent wrapper for the
- * editor content — the visual paper is provided by .page-bg behind it.
- */
+/* 分页模式下 .paper 只是编辑内容的透明包装；
+ * 真实可见纸张由背后的 .page-bg 提供。 */
 .workspace[data-paginated='1'] .paper {
   background: transparent;
   box-shadow: none;
@@ -607,7 +594,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   line-height: 1.15;
 }
 
-/* ProseMirror editor styles (Word defaults) */
+/* ProseMirror 正文样式：尽量模拟 Word 默认排版。 */
 .ProseMirror {
   outline: none;
   min-height: calc(var(--page-h) - var(--page-margin) * 2);
@@ -615,10 +602,8 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   font-size: 11pt;
   line-height: 1.15;
   color: #222;
-  /* Establish a positioning context so descendants of the editor have
-   * .ProseMirror as their offsetParent. The Pagination plugin uses
-   * bounding rects relative to view.dom, so this also keeps measurements
-   * consistent (no leakage from .paper-content-wrap padding). */
+  /* 建立定位上下文，让编辑器内部绝对定位元素以 .ProseMirror 为 offsetParent。
+   * Pagination 插件也会以 view.dom 为基准读取 bounding rect，这能保持测量稳定。 */
   position: relative;
 }
 
@@ -630,17 +615,17 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   min-height: 0;
 }
 
-/* Word's selection blue */
+/* Word 风格选区蓝色。 */
 .ProseMirror ::selection {
   background: #b3d4fc;
 }
 
-/* Word default: 8pt space after each paragraph, no space before. */
+/* Word 默认段落：段后 8pt，段前 0。 */
 .ProseMirror p {
   margin: 0 0 8pt;
 }
 
-/* Word heading defaults (Title 28pt, H1 16pt blue, H2 13pt blue, H3 12pt darker blue, H4 11pt italic). */
+/* Word 风格标题默认值：H1/H2 蓝色，H3 深蓝，H4 斜体等。 */
 .ProseMirror h1 {
   font-size: 16pt;
   margin: 12pt 0 0;
@@ -691,7 +676,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   line-height: 1.25;
 }
 
-/* Word-style list markers per nesting level. */
+/* 按嵌套层级模拟 Word 列表符号。 */
 .ProseMirror ul {
   list-style-type: disc;
   padding-left: 0.5in;
@@ -759,13 +744,11 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   margin: 16px 0;
 }
 
-/* ============ Tables (stock Tiptap styling) ============ */
+/* ============ 表格（Tiptap 基础样式 + Word/Excel 兼容） ============ */
 .ProseMirror .tableWrapper {
   margin: 0;
   padding: 0;
-  /* Don't show a horizontal scrollbar on every table. The contents are
-   * forced to fit the page width below, so overflow is unexpected and
-   * looked like a UI section bar to users. Switch to visible. */
+  /* 不给每张表格单独显示横向滚动条；表格会被强制适配页面宽度。 */
   overflow: visible;
   max-width: 100%;
 }
@@ -778,23 +761,19 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* Allow long words / numbers / URLs to wrap inside cells so a single
-   * unbreakable token doesn't push the column past the page width. */
+  /* 长单词、数字、URL 可以在单元格内断行，避免单个 token 撑宽整列。 */
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
-/* Pasted tables (Word/Excel) often arrive with explicit inline widths that
- * overflow the editable content column. Force them into the available
- * width while preserving their internal column proportions. */
+/* Word/Excel 粘贴表格经常带显式宽度；这里把它们压回可编辑区域宽度。 */
 .ProseMirror table[style*="width"],
 .ProseMirror table[width] {
   width: 100% !important;
   max-width: 100% !important;
 }
 
-/* Cells should never define their own absolute width either; they get
- * proportional widths from the table-layout: fixed algorithm. */
+/* 单元格也不保留绝对宽度，列宽交给 table-layout: fixed 按比例分配。 */
 .ProseMirror td,
 .ProseMirror th {
   word-break: break-word;
@@ -810,8 +789,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   white-space: normal !important;
 }
 
-/* Row-level pagination spacer: a transparent block dropped inside a
- * <td>/<th> to push that cell's content down to the next page. */
+/* 行级分页 spacer：透明块放进 td/th 内，用来把后续行推到下一页。 */
 .ProseMirror td>.pm-page-spacer,
 .ProseMirror th>.pm-page-spacer {
   display: block;
@@ -829,14 +807,10 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   position: relative;
 }
 
-/* Pagination cell-pad mask: the Pagination plugin extends a cell's
- * padding-bottom to push the next row to the next page. The cell's
- * left/right verticals would naturally extend through that padding,
- * producing a visible column line below the row's content. Paint a
- * paper-coloured pseudo over the padded portion (extending generously
- * past each side to also cover the table's outer border + neighbour
- * cells' shared collapsed border) so the borders appear to stop at
- * the row's natural bottom. */
+/* 分页单元格 padding 遮罩：
+ * Pagination 插件会增加单元格 padding-bottom 来把下一行推到下一页。
+ * 如果不遮住这段 padding，单元格左右边框会继续向下延伸，像是穿进页脚区域。
+ * 这里用纸张色伪元素盖住额外 padding，让边框视觉上停在自然行高处。 */
 .ProseMirror td[data-pg-pad],
 .ProseMirror th[data-pg-pad] {
   overflow: visible;
@@ -856,8 +830,7 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
 }
 
 .ProseMirror th {
-  /* Default <th> shows no fill so an unstyled table looks like plain rows
-   * and columns. Header fills are opt-in via data-table-style presets. */
+  /* 默认 th 不加底色；只有选择 data-table-style 预设后才显示表头填充。 */
   background: transparent;
   font-weight: bold;
   text-align: left;
@@ -890,10 +863,9 @@ html[data-theme='dark'] .page-bg:not(:last-child)::after {
   cursor: col-resize;
 }
 
-/* Hover-only "select-all" button parked at the top-right corner of any
- * table inside the editor. Rendered by the TableSelectAll plugin as a
- * single shared element appended to .paper-content-wrap; positioned
- * absolutely over whichever table the user is currently hovering. */
+/* 表格悬停全选按钮。
+ * TableSelectAll 插件把一个共享按钮挂到 .paper-content-wrap 上，
+ * 并绝对定位到当前悬停表格的左上角。 */
 .we-table-select-all {
   position: absolute;
   width: 28px;
@@ -946,7 +918,7 @@ html[data-theme='dark'] .ProseMirror th {
   background: #333;
 }
 
-/* Images */
+/* 图片。 */
 .ProseMirror img.we-image {
   max-width: 100%;
   height: auto;
@@ -957,7 +929,7 @@ html[data-theme='dark'] .ProseMirror th {
   outline: 2px solid var(--accent);
 }
 
-/* Page break */
+/* 硬分页符。 */
 .ProseMirror .page-break {
   display: block;
   margin: 18px 0;
@@ -980,7 +952,7 @@ html[data-theme='dark'] .ProseMirror th {
   text-transform: uppercase;
 }
 
-/* Task list */
+/* 任务列表。 */
 .ProseMirror ul[data-type='taskList'] {
   list-style: none;
   padding-left: 4px;
@@ -996,7 +968,7 @@ html[data-theme='dark'] .ProseMirror th {
   user-select: none;
 }
 
-/* Placeholder */
+/* 占位提示。 */
 .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
   color: var(--fg-mute);
@@ -1005,12 +977,12 @@ html[data-theme='dark'] .ProseMirror th {
   height: 0;
 }
 
-/* Selection */
+/* 选区。 */
 .ProseMirror ::selection {
   background: rgba(24, 90, 189, 0.25);
 }
 
-/* Print */
+/* 打印样式。 */
 @media print {
   body * {
     visibility: hidden;
@@ -1059,52 +1031,38 @@ html[data-theme='dark'] .ProseMirror th {
 
 
 
-/* ============ Page background ============
- * The page-bg div paints solid paper colour for each tile. The four
- * page zones (header / SEPL meta / content / footer) are visualised by
- * the actual chrome elements (page-letterhead img, page-letterhead-meta,
- * page-footer) sitting on top — there are no debug zone tints because
- * those produced visible strips on the left/right page margins that
- * looked like ghost rows next to the table content area. */
+/* ============ 页面背景补强 ============
+ * page-bg 为每页绘制实心纸张底色。
+ * 信头、SEPL 信息条、页脚由真实装饰元素叠在上方；这里不再使用调试色块，
+ * 避免页面左右边缘出现像“幽灵行”的可见色带。 */
 .page-bg {
   background-color: var(--paper);
 }
 
-/* The footer must paint OPAQUELY so any cell border that the pagination
- * plugin pushes into the footer band is masked. The footer.png image
- * itself provides the visual; the wrapper rule above keeps it edge-to-
- * edge and opaque. */
+/* 页脚必须不透明，这样分页插件推入页脚区域的表格边框会被盖住。
+ * footer.png 本身提供视觉图案，上面的包装规则保证它通栏且不透明。 */
 
-/* SEPL meta band: page 1 is yellow with the reference number, pages 2+
- * are paper-white (empty placeholder kept for masking). */
+/* SEPL 信息条：第一页黄色并显示编号/日期；后续页用纸张白色空占位负责遮罩。 */
 .workspace .page-letterhead-meta,
 .preview-paper>.page-letterhead-meta {
   background: #fff3b6;
 }
 
-/* On pages 2+, the SEPL reference number block is suppressed (only
- * shown on page 1). The empty band still needs to mask any cell border
- * the pagination plugin extends into its area, but should be visually
- * indistinguishable from plain paper — page-break is conveyed by the
- * gap between tiles, not by a coloured strip. */
+/* 第 2 页及以后隐藏 SEPL 编号条。
+ * 空白条仍需要遮住表格边框溢出，但视觉上应和普通纸张一致；
+ * 分页边界由页面间距表达，而不是由彩色条表达。 */
 .page-letterhead-meta[data-empty='1'] {
   background: var(--paper) !important;
 }
 
-/* SEPL meta band reservation: page 1 only.
- * The paper-content-wrap padding-top is now just `letterheadSafePx`
- * (no +14mm) so page 2+ content starts right under the letterhead.
- * Page 1 still needs 14mm of clearance for the SEPL meta band — add
- * it as padding on the very first top-level CONTENT node in the
- * document so the cost is paid once, on page 1 only. Padding (not
- * margin) avoids margin-collapse with a heading's own top margin.
+/* SEPL 信息条占位：只影响第一页。
+ * paper-content-wrap 的 padding-top 现在只等于 `letterheadSafePx`，
+ * 所以后续页正文会从信头下方开始。第一页还需要给黄色信息条让出 14mm，
+ * 因此把这段 padding 加到第一个真实顶层正文节点上，让成本只在第一页支付一次。
  *
- * The Pagination plugin may inject `.pm-page-spacer` widgets at the
- * start of the document; we must skip those so the actual first
- * paragraph keeps its 14mm reservation. Without the `:not(...)` /
- * `.pm-page-spacer + ...` pair, inserting/removing the first spacer
- * toggles the 14mm padding, which creates a feedback loop that makes
- * rows oscillate between pages. */
+ * Pagination 插件可能在文档开头注入 `.pm-page-spacer`；
+ * 选择器必须跳过这些 spacer，确保真正第一段正文始终保留 14mm。
+ * 否则 spacer 出现/消失会反复切换这段 padding，引发分页抖动。 */
 .workspace[data-paginated='1'] .ProseMirror> :first-child:not(.pm-page-spacer),
 .workspace[data-paginated='1'] .ProseMirror>.pm-page-spacer:first-child+ :not(.pm-page-spacer),
 .preview-pane .ProseMirror.preview-content> :first-child:not(.pm-page-spacer),
@@ -1112,8 +1070,7 @@ html[data-theme='dark'] .ProseMirror th {
   padding-top: 14mm;
 }
 
-/* Drop any green tinting on the editable wrapper - the green band is
- * painted by .page-bg, so the editable layer must stay transparent. */
+/* 编辑包装层保持透明；页面色带由 .page-bg/信头素材负责绘制。 */
 .workspace[data-paginated='1'] .paper-content-wrap,
 .workspace[data-paginated='0'] .paper {
   background: transparent;
