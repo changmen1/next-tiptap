@@ -2,10 +2,13 @@
 
 import { useEditor } from '@tiptap/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import DocsManager from './components/DocsManager';
+import FindReplace from './components/FindReplace';
 import OutlinePanel from './components/outline/OutlinePanel';
 import Ribbon from './components/ribbon/Ribbon';
 import StatusBar from './components/StatusBar';
 import TitleBar from "./components/TitleBar";
+import WordCount from './components/WordCount';
 import EditorSurface from './editor/EditorSurface';
 import { buildExtensions } from './editor/extensions';
 import { exportDocx, exportHtml, exportTxt, importFile, printDoc } from './io';
@@ -62,6 +65,16 @@ export default function Home() {
   const [editorScrollParent, setEditorScrollParent] = useState<HTMLElement | null>(null);
   const getEditorScrollParent = useCallback(() => editorScrollParent, [editorScrollParent]);
 
+  // Apply theme
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  // Toggle formatting-marks class on the document for editor CSS hooks.
+  useEffect(() => {
+    document.documentElement.classList.toggle('show-marks', showFormattingMarks);
+  }, [showFormattingMarks]);
+
   const editor = useEditor({
     extensions,
     content: DEFAULT_CONTENT,
@@ -109,6 +122,29 @@ export default function Home() {
     dirtyRef.current = false;
     setDocs(listDocs());
   };
+
+  // Autosave (debounced)
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (dirtyRef.current) {
+        doSave();
+      }
+    }, 3000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, docId, title, pageSize, orientation, margins]);
+
+  // Warn on unload if dirty
+  useEffect(() => {
+    const h = (e: BeforeUnloadEvent) => {
+      if (dirtyRef.current) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', h);
+    return () => window.removeEventListener('beforeunload', h);
+  }, []);
 
   const handleAction = async (action: string) => {
     if (!editor) return;
@@ -215,6 +251,31 @@ export default function Home() {
         </div> */}
       </div>
       <StatusBar editor={editor} />
+
+      <FindReplace editor={editor} open={findOpen} onClose={() => setFindOpen(false)} />
+      <WordCount editor={editor} open={wcOpen} onClose={() => setWcOpen(false)} />
+      <DocsManager
+        open={docsOpen}
+        onClose={() => setDocsOpen(false)}
+        docs={docs}
+        onNew={() => handleAction('new')}
+        onLoad={(id) => {
+          const d = loadDoc(id);
+          if (!d || !editor) return;
+          editor.commands.setContent(d.content || '', false as any);
+          loadDocAction(d.id, d.title);
+          setPageSize(d.pageSize as never);
+          setOrientation(d.orientation as never);
+          setMargins(d.margins as never);
+          setLastDocId(d.id);
+          setSaveStatus('saved');
+          dirtyRef.current = false;
+        }}
+        onDelete={(id) => {
+          deleteDoc(id);
+          setDocs(listDocs());
+        }}
+      />
     </div>
   );
 }

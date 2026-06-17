@@ -45,3 +45,13 @@ p i docx
 p i markdown-it
 p i --save-dev @types/markdown-it
 ```
+
+## 键盘快捷键
+
+- Ctrl+S 保存
+- Ctrl+P 打印
+- Ctrl+F 查找
+- Ctrl+O 打开
+- Ctrl+Shift+N 新建
+- Ctrl+Enter 分页符
+- 以及 Tiptap 的所有标准格式快捷键（ Ctrl+B/I/U 等）

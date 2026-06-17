@@ -49,6 +49,7 @@ const TitleBar: FC<Props> = ({ onSave, onPrint, onOpenDocs, onFileAction, outlin
                     ☰
                 </button>
                 <button className="icon-btn" onClick={onOpenDocs} title="My Documents">📁</button>
+                <button className="icon-btn" onClick={() => { }} title="PDF预览">📄</button>
                 <button className="icon-btn" onClick={toggleTheme} title="Toggle theme">🌓</button>
             </div>
         </header>
