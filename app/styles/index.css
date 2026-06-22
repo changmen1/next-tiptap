@@ -14,8 +14,10 @@
   --fg-mute: #555;
   --border: #d8d8d8;
   --border-strong: #b6b6b6;
-  --accent: #185abd;
-  --accent-fg: #ffffff;
+  /* --accent: #185abd; */
+  --accent: #e4e3e2;
+  /* --accent-fg: #ffffff; */
+  --accent-fg: #000;
   --accent-soft: #e7f0fb;
   --danger: #c5221f;
   --success: #1e8e3e;
@@ -39,7 +41,9 @@ html[data-theme='dark'] {
   --fg-mute: #aaa;
   --border: #3a3a3a;
   --border-strong: #555;
-  --accent: #4a8df0;
+  /* --accent: #4a8df0; */
+  --accent: #161616;
+  --accent-fg: #ffffff;
   --accent-soft: #1d2d44;
   --paper: #2b2b2b;
   --paper-edge: #1a1a1a;
