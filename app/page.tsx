@@ -27,18 +27,17 @@ import { useEditorStore } from './store';
 // Tiptap 的 `content` 可以直接吃 HTML 字符串；这里保留一份富文本示例，
 // 方便开发/验收时快速检查标题、强调、列表等基础节点是否正常渲染。
 const DEFAULT_CONTENT = `
-<h1>Welcome to WordEditor</h1>
-<p>This is a <strong>production-grade</strong>, Microsoft Word-like editor built with <em>React</em>,
-<em>TypeScript</em>, and <em>Tiptap</em> (ProseMirror).</p>
-<p>Use the ribbon above to format text, insert images, change page layout, and export your document
-as <strong>.docx</strong>, <strong>HTML</strong>, <strong>TXT</strong>, or <strong>PDF</strong> (via print).</p>
+<h1>欢迎使用 深墨创作平台</h1>
+<p>这是一个使用 React 构建的、类似 Microsoft Word 的<strong>生产级</strong>编辑器</p>，
+<em>TypeScript</em>, 和 <em>Tiptap</em> (ProseMirror).</p>
+<p>使用上方的功能区来设置文本格式、插入图像、更改页面布局，并将文档导出为 <strong>.docx</strong>、<strong>HTML</strong>、<strong>TXT</strong> 或 <strong>PDF</strong> 格式（通过打印功能）。</p>
 <ul>
-  <li>Rich formatting: bold, italic, underline, color, highlight, font &amp; size</li>
-  <li>Lists, images, links, headings, code, quotes</li>
-  <li>Page setup, zoom, ruler, find &amp; replace, word count</li>
-  <li>Autosave to local storage and a documents manager</li>
+<li>丰富的格式选项：加粗、斜体、下划线、颜色、高亮、字体及字号</li>
+<li>列表、图像、链接、标题、代码、引用</li>
+<li>页面设置、缩放、标尺、查找与替换、字数统计</li>
+<li>自动保存至本地存储及文档管理器</li>
 </ul>
-<p>Start typing to replace this content.</p>
+<p>开始输入以替换此内容。</p>
 `;
 
 export default function Home() {
@@ -91,7 +90,9 @@ export default function Home() {
   const editor = useEditor({
     extensions,
     content: DEFAULT_CONTENT,
-    autofocus: 'end',
+    // 刷新页面时不要自动把焦点放到文档末尾。
+    // `autofocus: 'end'` 会让 ProseMirror 为了显示末尾光标而把编辑区滚动到底部。
+    autofocus: false,
     onUpdate: () => {
       dirtyRef.current = true;
       setSaveStatus('dirty');

@@ -190,7 +190,7 @@ export default function OutlinePanel({ editor, onClose, scrollParent }: Props) {
   return (
     <aside className="outline-panel outline-panel--top-left" aria-label="Document outline">
       <header className="outline-panel__header">
-        <span className="outline-panel__title">Outline</span>
+        <span className="outline-panel__title">大纲</span>
         <button
           type="button"
           className="outline-panel__close"

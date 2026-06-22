@@ -63,10 +63,10 @@ const SIZES: { label: string; value: string }[] = [
 const LINE_HEIGHTS = ['1', '1.15', '1.5', '2', '2.5', '3'];
 const FIRST_LINE_INDENTS = [
   // 中文论文常见首行缩进为 2em，这里也保留 1/3 字符作为可选项。
-  { label: 'None', value: null },
-  { label: 'First line 1 char', value: '1em' },
-  { label: 'First line 2 chars', value: '2em' },
-  { label: 'First line 3 chars', value: '3em' }
+  { label: '无', value: null },
+  { label: '首行缩进 1 个字符', value: '1em' },
+  { label: '首行缩进 2 个字符', value: '2em' },
+  { label: '首行缩进 3 个字符', value: '3em' }
 ] as const;
 
 const FONT_FAMILIES: { label: string; value: string }[] = [
@@ -111,31 +111,31 @@ const HIGHLIGHT_COLORS = [
 const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Editor) => void }[] = [
   // 样式库按钮本质上是一组 Tiptap command 组合，不是完整 Word 样式系统。
   {
-    id: 'normal', label: 'Normal', preview: 'Normal',
+    id: 'normal', label: '正文', preview: '正文',
     apply: (e) => e.chain().focus().setParagraph().unsetAllMarks().run()
   },
   {
-    id: 'no-spacing', label: 'No Spacing', preview: 'No Spacing',
+    id: 'no-spacing', label: '无间距', preview: '无间距',
     apply: (e) => e.chain().focus().setParagraph().setLineHeight('1').unsetAllMarks().run()
   },
   {
-    id: 'h1', label: 'Heading 1', preview: 'Heading 1',
+    id: 'h1', label: '标题 1', preview: '标题 1',
     apply: (e) => e.chain().focus().setHeading({ level: 1 }).run()
   },
   {
-    id: 'h2', label: 'Heading 2', preview: 'Heading 2',
+    id: 'h2', label: '标题 2', preview: '标题 2',
     apply: (e) => e.chain().focus().setHeading({ level: 2 }).run()
   },
   {
-    id: 'title', label: 'Title', preview: 'Title',
+    id: 'title', label: '标题', preview: '标题',
     apply: (e) => e.chain().focus().setHeading({ level: 1 }).setMark('textStyle', { fontSize: '28pt' }).run()
   },
   {
-    id: 'subtitle', label: 'Subtitle', preview: 'Subtitle',
+    id: 'subtitle', label: '副标题', preview: '副标题',
     apply: (e) => e.chain().focus().setHeading({ level: 2 }).setMark('textStyle', { fontSize: '14pt', color: '#7f7f7f' }).run()
   },
   {
-    id: 'quote', label: 'Quote', preview: 'Quote',
+    id: 'quote', label: '引用', preview: '引用',
     apply: (e) => e.chain().focus().setBlockquote().run()
   }
 ];
@@ -143,15 +143,15 @@ const STYLE_GALLERY: { id: string; label: string; preview: string; apply: (e: Ed
 const CASE_ACTIONS: { id: string; label: string; transform: (s: string) => string }[] = [
   // 只对选中文本做纯字符串转换，不保留复杂大小写语言规则。
   { id: 'sentence', label: '句首大写', transform: (s) => s.replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase()).replace(/(\w)([A-Z])/g, (_, a, b) => a + b.toLowerCase()) },
-  { id: 'lower', label: 'lowercase', transform: (s) => s.toLowerCase() },
-  { id: 'upper', label: 'UPPERCASE', transform: (s) => s.toUpperCase() },
-  { id: 'capitalize', label: 'Capitalize Each Word', transform: (s) => s.replace(/\b\w/g, (m) => m.toUpperCase()) },
-  { id: 'toggle', label: 'tOGGLE cASE', transform: (s) => s.split('').map((c) => (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase())).join('') }
+  { id: 'lower', label: '小写', transform: (s) => s.toLowerCase() },
+  { id: 'upper', label: '大写', transform: (s) => s.toUpperCase() },
+  { id: 'capitalize', label: '首字母大写', transform: (s) => s.replace(/\b\w/g, (m) => m.toUpperCase()) },
+  { id: 'toggle', label: '切换大小写', transform: (s) => s.split('').map((c) => (c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase())).join('') }
 ];
 
 const QUICK_STYLES: { id: string; label: string }[] = [
   // 表格上下文页签里的快速样式，id 对应 StyledTable 的 tableStyle 属性。
-  { id: '', label: 'No style' },
+  { id: 'no-style', label: 'No style' },
   { id: 'plain', label: 'Plain' },
   { id: 'grid', label: 'Grid' },
   { id: 'grid-accent1', label: 'Accent 1' },
@@ -543,41 +543,41 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                   </div>
                 )}
               />
-              <RBtn editor={editor} title="Clear all formatting" onClick={clearAll}>
+              <RBtn editor={editor} title="清除所有格式" onClick={clearAll}>
                 <span aria-hidden>⌫A</span>
               </RBtn>
             </div>
             <div className="row">
-              <RBtn editor={editor} active={state.bold} title="Bold (Ctrl+B)" onClick={() => focus().toggleBold().run()}><b>B</b></RBtn>
-              <RBtn editor={editor} active={state.italic} title="Italic (Ctrl+I)" onClick={() => focus().toggleItalic().run()}><i>I</i></RBtn>
+              <RBtn editor={editor} active={state.bold} title="加粗 (Ctrl+B)" onClick={() => focus().toggleBold().run()}><b>B</b></RBtn>
+              <RBtn editor={editor} active={state.italic} title="倾斜 (Ctrl+I)" onClick={() => focus().toggleItalic().run()}><i>I</i></RBtn>
               <SplitButton
                 main={<u>U</u>}
-                title="Underline (Ctrl+U)"
+                title="下划线 (Ctrl+U)"
                 active={state.underline}
                 onClick={() => focus().toggleUnderline().run()}
                 popover={(close) => (
                   <div className="popover-list">
                     <button type="button" className="pop-item" onClick={() => { focus().toggleUnderline().run(); close(); }}>
-                      <u>Underline</u>
+                      <u>强调</u>
                     </button>
                     <button type="button" className="pop-item" onClick={() => { focus().unsetUnderline?.().run(); close(); }}>
-                      No Underline
+                      无下划线
                     </button>
                   </div>
                 )}
               />
-              <RBtn editor={editor} active={state.strike} title="Strikethrough" onClick={() => focus().toggleStrike().run()}><s>S</s></RBtn>
-              <RBtn editor={editor} active={state.subscript} title="Subscript (Ctrl+=)" onClick={() => focus().toggleSubscript().run()}>X<sub>2</sub></RBtn>
-              <RBtn editor={editor} active={state.superscript} title="Superscript (Ctrl+Shift+=)" onClick={() => focus().toggleSuperscript().run()}>X<sup>2</sup></RBtn>
+              <RBtn editor={editor} active={state.strike} title="删除线" onClick={() => focus().toggleStrike().run()}><s>ab</s></RBtn>
+              <RBtn editor={editor} active={state.subscript} title="下标 (Ctrl+=)" onClick={() => focus().toggleSubscript().run()}>X<sub>2</sub></RBtn>
+              <RBtn editor={editor} active={state.superscript} title="上标 (Ctrl+Shift+=)" onClick={() => focus().toggleSuperscript().run()}>X<sup>2</sup></RBtn>
               <SplitButton
                 stacked
                 caretLabel={<span className="bar" style={{ background: state.highlight }} />}
                 main={<span className="hl-glyph" style={{ background: state.highlight }}>ab</span>}
-                title="Text Highlight Color"
+                title="突出显示"
                 onClick={() => focus().toggleHighlight({ color: state.highlight }).run()}
                 popover={(close) => (
                   <div className="popover-palette">
-                    <div className="palette-title">Highlight</div>
+                    <div className="palette-title">强调</div>
                     <div className="palette">
                       {HIGHLIGHT_COLORS.map((c) => (
                         <button
@@ -595,7 +595,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                       ))}
                     </div>
                     <hr className="pop-sep" />
-                    <button type="button" className="pop-item" onClick={() => { focus().unsetHighlight().run(); close(); }}>No Color</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().unsetHighlight().run(); close(); }}>无</button>
                   </div>
                 )}
               />
@@ -603,11 +603,11 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                 stacked
                 caretLabel={<span className="bar" style={{ background: state.color }} />}
                 main={<span className="font-color-glyph" style={{ borderBottomColor: state.color }}>A</span>}
-                title="Font Color"
+                title="文本颜色"
                 onClick={() => focus().setColor(state.color).run()}
                 popover={(close) => (
                   <div className="popover-palette">
-                    <div className="palette-title">Theme Colors</div>
+                    <div className="palette-title">主题颜色</div>
                     <div className="palette">
                       {COLOR_THEME.map((c) => (
                         <button
@@ -621,9 +621,9 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                       ))}
                     </div>
                     <hr className="pop-sep" />
-                    <button type="button" className="pop-item" onClick={() => { focus().unsetColor().run(); close(); }}>Automatic</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().unsetColor().run(); close(); }}>自动的</button>
                     <label className="pop-item" style={{ cursor: 'pointer' }}>
-                      <span>More Colors…</span>
+                      <span>更多颜色…</span>
                       <input
                         type="color"
                         style={{ marginLeft: 'auto' }}
@@ -637,12 +637,12 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
             </div>
           </RGroup>
 
-          {/* === Paragraph === */}
-          <RGroup label="Paragraph">
+          {/* === 段落 === */}
+          <RGroup label="段落">
             <div className="row">
               <SplitButton
                 main={<span aria-hidden>•≡</span>}
-                title="Bullets"
+                title="项目符号"
                 active={state.ul}
                 onClick={() => focus().toggleBulletList().run()}
                 popover={(close) => (
@@ -668,7 +668,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
               />
               <SplitButton
                 main={<span aria-hidden>1.≡</span>}
-                title="Numbered List"
+                title="编号"
                 active={state.ol}
                 onClick={() => focus().toggleOrderedList().run()}
                 popover={(close) => (
@@ -689,14 +689,14 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                   </div>
                 )}
               />
-              <RBtn editor={editor} title="Multilevel List" onClick={() => focus().toggleBulletList().run()}>
+              <RBtn editor={editor} title="多级列表" onClick={() => focus().toggleBulletList().run()}>
                 <span aria-hidden>≣</span>
               </RBtn>
-              <RBtn editor={editor} title="Decrease indent" onClick={() => focus().liftListItem('listItem').run()}>⇤</RBtn>
-              <RBtn editor={editor} title="Increase indent" onClick={() => focus().sinkListItem('listItem').run()}>⇥</RBtn>
+              <RBtn editor={editor} title="减少缩进" onClick={() => focus().liftListItem('listItem').run()}>⇤</RBtn>
+              <RBtn editor={editor} title="增加缩进" onClick={() => focus().sinkListItem('listItem').run()}>⇥</RBtn>
               <SplitButton
                 main={<span aria-hidden>¶→</span>}
-                title="First line indent"
+                title="首行缩进"
                 active={state.firstLineIndent === '2em'}
                 onClick={() => setFirstLineIndent('2em')}
                 popover={(close) => (
@@ -721,17 +721,17 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                   </div>
                 )}
               />
-              <RBtn editor={editor} title="Sort A→Z" onClick={sortParagraphs}>A<sub>Z</sub>↧</RBtn>
-              <RBtn editor={editor} active={showFormattingMarks} title="Show/Hide formatting marks (Ctrl+*)" onClick={toggleFormattingMarks}>¶</RBtn>
+              <RBtn editor={editor} title="种类 A→Z" onClick={sortParagraphs}>A<sub>Z</sub>↧</RBtn>
+              <RBtn editor={editor} active={showFormattingMarks} title="显示/隐藏格式标记 (Ctrl+*)" onClick={toggleFormattingMarks}>¶</RBtn>
             </div>
             <div className="row">
-              <RBtn editor={editor} active={state.alignLeft} title="Align Left (Ctrl+L)" onClick={() => focus().setTextAlign('left').run()}>≡⯇</RBtn>
-              <RBtn editor={editor} active={state.alignCenter} title="Center (Ctrl+E)" onClick={() => focus().setTextAlign('center').run()}>≡</RBtn>
-              <RBtn editor={editor} active={state.alignRight} title="Align Right (Ctrl+R)" onClick={() => focus().setTextAlign('right').run()}>⯈≡</RBtn>
-              <RBtn editor={editor} active={state.alignJustify} title="Justify (Ctrl+J)" onClick={() => focus().setTextAlign('justify').run()}>▤</RBtn>
+              <RBtn editor={editor} active={state.alignLeft} title="左对齐 (Ctrl+L)" onClick={() => focus().setTextAlign('left').run()}>≡⯇</RBtn>
+              <RBtn editor={editor} active={state.alignCenter} title="居中对齐 (Ctrl+E)" onClick={() => focus().setTextAlign('center').run()}>≡</RBtn>
+              <RBtn editor={editor} active={state.alignRight} title="右对齐 (Ctrl+R)" onClick={() => focus().setTextAlign('right').run()}>⯈≡</RBtn>
+              <RBtn editor={editor} active={state.alignJustify} title="两端对齐 (Ctrl+J)" onClick={() => focus().setTextAlign('justify').run()}>▤</RBtn>
               <SplitButton
                 main={<span aria-hidden>↕</span>}
-                title="Line and Paragraph Spacing"
+                title="行距与段落间距"
                 onClick={() => focus().setLineHeight('1.15').run()}
                 popover={(close) => (
                   <div className="popover-list">
@@ -748,7 +748,7 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
               />
               <SplitButton
                 main={<span className="hl-glyph" style={{ background: '#ffeaa7' }} aria-hidden>▣</span>}
-                title="Shading"
+                title="阴影"
                 onClick={() => state.inTable && focus().setCellStyleProp('background-color', '#ffeaa7').run()}
                 disabled={!state.inTable}
                 popover={(close) => (
@@ -767,30 +767,30 @@ function RibbonInner({ editor }: { editor: Editor; onAction: Props['onAction'] }
                       ))}
                     </div>
                     <hr className="pop-sep" />
-                    <button type="button" className="pop-item" onClick={() => { focus().setCellStyleProp('background-color', null).run(); close(); }}>No Color</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setCellStyleProp('background-color', null).run(); close(); }}>无</button>
                   </div>
                 )}
               />
               <SplitButton
                 main={<span aria-hidden>▦</span>}
-                title="Borders"
+                title="边界"
                 onClick={() => focus().setTableBorderPreset('all').run()}
                 disabled={!state.inTable}
                 popover={(close) => (
                   <div className="popover-list">
-                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('all').run(); close(); }}>All Borders</button>
-                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('outer').run(); close(); }}>Outside Borders</button>
-                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('inner').run(); close(); }}>Inside Borders</button>
-                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('horizontal').run(); close(); }}>Horizontal Borders</button>
-                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('none').run(); close(); }}>No Border</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('all').run(); close(); }}>所有边框</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('outer').run(); close(); }}>外侧边框</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('inner').run(); close(); }}>内侧边框</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('horizontal').run(); close(); }}>水平边框</button>
+                    <button type="button" className="pop-item" onClick={() => { focus().setTableBorderPreset('none').run(); close(); }}>无边框</button>
                   </div>
                 )}
               />
             </div>
           </RGroup>
 
-          {/* === Styles gallery === */}
-          <RGroup label="Styles" className="styles-group">
+          {/* === 样式 gallery === */}
+          <RGroup label="样式" className="styles-group">
             <div className="styles-gallery">
               {STYLE_GALLERY.map((s) => {
                 const active =
